@@ -1,0 +1,300 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Core Models
+// ============================================================================
+
+model Server {
+  id          String        @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  name        String        @unique
+  type        ServerType
+  config      Json          // Server-specific config
+  status      ServerStatus  @default(STOPPED)
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deployments Deployment[]
+}
+
+model Deployment {
+  id          String            @id @default(cuid())
+  serverId    String
+  server      Server            @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  tenantId    String?
+  tenant      Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  type        DeploymentType
+  status      DeploymentStatus  @default(STOPPED)
+  port        Int?
+  host        String?           @default("127.0.0.1")
+  containerId String?           // For Docker
+  pid         Int?              // For local process
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  healthChecks HealthCheck[]
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  key         String   @unique
+  keyPrefix   String   // Store first 12 characters of the key for optimized lookup
+  keyHash     String   @unique  // Hashed version for verification
+  name        String
+  permissions Json     // { serverIds: string[] | null } null = all servers
+  ipWhitelist Json     @default("[]")  // String array stored as JSON for SQLite
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@index([keyPrefix])
+  @@index([lastUsedAt])
+  @@index([expiresAt])
+  @@index([tenantId])
+}
+
+// ============================================================================
+// Monitoring & Health Check Models
+// ============================================================================
+
+model HealthCheck {
+  id          String   @id @default(cuid())
+  deploymentId String
+  deployment  Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  status      String   // "healthy" | "unhealthy" | "degraded"
+  responseTime Int?    // milliseconds
+  message     String?
+  checkedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([deploymentId])
+  @@index([checkedAt])
+}
+
+model Metric {
+  id          String   @id @default(cuid())
+  tenantId    String?  // For multi-tenant metrics
+  name        String   // e.g., "mcp_requests_total", "deployment_uptime"
+  value       Float
+  labels      Json     // key-value pairs for dimensional data
+  timestamp   DateTime @default(now())
+
+  @@index([name, timestamp])
+  @@index([tenantId, name, timestamp])
+}
+
+// ============================================================================
+// Audit & Security Models
+// ============================================================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // "server.create", "key.delete", "api.request", etc.
+  entityType  String   // "server", "key", "deployment", "request"
+  entityId    String
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  apiKeyId    String?
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  ipAddress   String?
+  userAgent   String?
+  success     Boolean
+  errorCode   String?
+  details     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, entityType, entityId])
+  @@index([action, createdAt])
+  @@index([apiKeyId, createdAt])
+  @@index([tenantId, action, createdAt])  // NEW: Composite index for filtering by tenant, action, and date
+  @@index([createdAt])  // NEW: Index for sorting/filtering by creation date
+}
+
+// ============================================================================
+// Multi-Tenancy Models
+// ============================================================================
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  passwordHash  String
+  name          String?
+  avatar        String?
+  emailVerified Boolean     @default(false)
+  status        UserStatus  @default(ACTIVE)
+  tenantId      String?
+  tenant        Tenant?     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  sessions    Session[]
+  userRoles   UserRole[]
+  auditLogs   AuditLog[]
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String    @unique
+  refreshToken String?   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  lastUsedAt   DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+model Role {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  isSystem    Boolean    @default(false)
+  permissions Json       // RolePermission object
+  userRoles   UserRole[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model UsageRecord {
+  id         String   @id @default(cuid())
+  tenantId   String?
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  userId     String?
+  apiKeyId   String?
+  metricName String   // e.g., "mcp_requests", "tokens_used", "storage_bytes"
+  quantity   Int      @default(1)
+  timestamp  DateTime @default(now())
+  metadata   Json?    // Additional context
+
+  @@index([tenantId, metricName, timestamp])
+  @@index([userId, timestamp])
+  @@index([apiKeyId, timestamp])
+}
+
+model Webhook {
+  id             String   @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  url            String
+  secret         String
+  events         Json     // Array of WebhookEvent values stored as JSON for SQLite
+  isActive       Boolean  @default(true)
+  lastTriggeredAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deliveries     WebhookDelivery[]
+
+  @@index([tenantId])
+}
+
+model WebhookDelivery {
+  id        String       @id @default(cuid())
+  webhookId String
+  webhook   Webhook      @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  eventType WebhookEvent
+  payload   Json
+  statusCode Int?        // HTTP status code from webhook endpoint
+  response   String?     // Response body from webhook endpoint
+  delivered  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  @@index([webhookId, delivered])
+  @@index([webhookId, createdAt])
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique  // For subdomain routing
+  quota       Json     // { maxServers: 10, maxKeys: 5, maxRequestsPerMinute: 1000 }
+  settings    Json     // { features: {...}, limits: {...} }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  servers        Server[]
+  deployments    Deployment[]
+  apiKeys        ApiKey[]
+  auditLogs      AuditLog[]
+  users          User[]
+  usageRecords   UsageRecord[]
+  webhooks       Webhook[]
+}
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum ServerType {
+  STDIO
+  SSE
+  AWS_LAMBDA
+  EXECUTABLE
+}
+
+enum ServerStatus {
+  ACTIVE
+  STOPPED
+  ERROR
+}
+
+enum DeploymentType {
+  DOCKER_COMPOSE
+  LOCAL_PROCESS
+}
+
+enum DeploymentStatus {
+  RUNNING
+  STOPPED
+  ERROR
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum WebhookEvent {
+  SERVER_CREATED
+  SERVER_UPDATED
+  SERVER_DELETED
+  SERVER_STARTED
+  SERVER_STOPPED
+  API_KEY_CREATED
+  USER_CREATED
+  USAGE_THRESHOLD_REACHED
+  QUOTA_EXCEEDED
+}

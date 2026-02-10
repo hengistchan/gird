@@ -1,0 +1,29 @@
+{
+  "name": "@gird/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsc --watch & nodemon --watch dist --exec node dist/index.js",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gird/core": "workspace:*",
+    "@fastify/cors": "^10.0.2",
+    "@prisma/client": "^6.2.1",
+    "bcrypt": "^5.1.1",
+    "fastify": "^5.3.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.17",
+    "@types/bcrypt": "^5.0.2",
+    "typescript": "^5.7.3",
+    "nodemon": "^3.1.9"
+  }
+}

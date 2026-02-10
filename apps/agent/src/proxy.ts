@@ -1,0 +1,223 @@
+/**
+ * Request proxy for forwarding to MCP servers
+ */
+
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import type { PrismaClient } from '@prisma/client';
+import type { DeploymentType, McpRequest, McpResponse } from '@gird/core';
+import { ProxyError, NotFoundError, DeploymentError } from '@gird/core';
+import { createLogger } from '@gird/core';
+
+const logger = createLogger('proxy');
+
+/**
+ * Get the deployment details for a server
+ */
+async function getDeployment(prisma: PrismaClient, serverId: string): Promise<{
+  type: DeploymentType;
+  host: string | null;
+  port: number | null;
+  containerId: string | null;
+  pid: number | null;
+}> {
+  // Find active deployment for the server
+  const deployment = await prisma.deployment.findFirst({
+    where: {
+      serverId,
+      status: 'RUNNING',
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  if (!deployment) {
+    throw new NotFoundError('deployment', `running deployment for server ${serverId}`);
+  }
+
+  return {
+    type: deployment.type as DeploymentType,
+    host: deployment.host,
+    port: deployment.port,
+    containerId: deployment.containerId,
+    pid: deployment.pid,
+  };
+}
+
+/**
+ * Proxy to a local process or Docker container
+ */
+async function proxyToHttp(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  host: string,
+  port: number,
+  path: string
+): Promise<void> {
+  const url = `http://${host}:${port}${path}`;
+
+  logger.debug('Proxying request', { url, method: req.method });
+
+  try {
+    // Build request init
+    const init: RequestInit = {
+      method: req.method,
+      headers: req.headers as Record<string, string>,
+    };
+
+    // Only add body if present
+    if (req.body) {
+      init.body = JSON.stringify(req.body);
+    }
+
+    // Forward the request
+    const response = await fetch(url, init);
+
+    // Set response headers
+    const responseHeaders = response.headers;
+    for (const [key, value] of responseHeaders.entries()) {
+      if (key.toLowerCase() !== 'content-encoding') {
+        reply.header(key, value);
+      }
+    }
+
+    // Set status code
+    reply.code(response.status);
+
+    // Send response body
+    const text = await response.text();
+    reply.send(text);
+  } catch (error) {
+    logger.error('Failed to proxy request', error as Error, { url });
+    throw new ProxyError(`Failed to reach MCP server at ${url}: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * Validate MCP request format
+ */
+function validateMcpRequest(body: unknown): McpRequest {
+  if (!body || typeof body !== 'object') {
+    throw new ProxyError('Invalid MCP request: request body must be a JSON-RPC object');
+  }
+
+  const req = body as Partial<McpRequest>;
+
+  if (req.jsonrpc !== '2.0') {
+    throw new ProxyError('Invalid MCP request: jsonrpc version must be "2.0"');
+  }
+
+  if (typeof req.id !== 'string' && typeof req.id !== 'number') {
+    throw new ProxyError('Invalid MCP request: id must be a string or number');
+  }
+
+  if (typeof req.method !== 'string') {
+    throw new ProxyError('Invalid MCP request: method must be a string');
+  }
+
+  return {
+    jsonrpc: '2.0',
+    id: req.id,
+    method: req.method,
+    params: req.params,
+  };
+}
+
+/**
+ * Create an MCP error response
+ */
+function createMcpError(id: string | number, code: number, message: string, data?: unknown): McpResponse {
+  return {
+    jsonrpc: '2.0',
+    id,
+    error: {
+      code,
+      message,
+      data,
+    },
+  };
+}
+
+/**
+ * Main proxy handler
+ */
+export async function proxyHandler(
+  req: FastifyRequest & { prisma: PrismaClient },
+  reply: FastifyReply
+): Promise<void> {
+  const { serverId } = req.params as { serverId: string };
+  const { '*': path = '' } = req.params as { '*': string };
+
+  logger.debug('Proxy request received', { serverId, path, method: req.method });
+
+  try {
+    // Get deployment details
+    const deployment = await getDeployment(req.prisma, serverId);
+
+    // For local process and Docker deployments, we expect an HTTP endpoint
+    if (deployment.port === null) {
+      throw new DeploymentError(`Server ${serverId} is not configured with a port`);
+    }
+
+    // Proxy to the server
+    await proxyToHttp(req, reply, deployment.host ?? '127.0.0.1', deployment.port, '/' + path);
+  } catch (error) {
+    // For MCP protocol errors, return MCP-formatted error
+    if (error instanceof ProxyError || error instanceof DeploymentError || error instanceof NotFoundError) {
+      // If this looks like an MCP request, return MCP error format
+      try {
+        const mcpReq = validateMcpRequest(req.body);
+        reply.code(200).send(createMcpError(mcpReq.id, -32603, error.message));
+        return;
+      } catch {
+        // Not an MCP request, return regular error
+      }
+
+      reply.code(error.statusCode).send({
+        error: error.message,
+        code: error.code,
+      });
+      return;
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Health check handler
+ */
+export async function healthHandler(_req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  reply.send({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * List available servers handler
+ */
+export async function listServersHandler(
+  req: FastifyRequest & { prisma: PrismaClient },
+  reply: FastifyReply
+): Promise<void> {
+  const servers = await req.prisma.server.findMany({
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      status: true,
+      description: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  reply.send({
+    servers: servers.map((s) => ({
+      ...s,
+      createdAt: s.createdAt.toISOString(),
+      updatedAt: s.updatedAt.toISOString(),
+    })),
+  });
+}
