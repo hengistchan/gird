@@ -20,6 +20,23 @@ export async function keyRoutes(fastify: FastifyInstance) {
   // List all API keys - requires authentication
   fastify.get('/keys', {
     onRequest: authHook,
+    schema: {
+      description: 'List all API keys',
+      tags: ['API Keys'],
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'number', minimum: 1, default: 1, description: 'Page number' },
+          pageSize: { type: 'number', minimum: 1, maximum: 100, default: 20, description: 'Items per page' },
+          search: { type: 'string', description: 'Search in key name' },
+        },
+      },
+      response: {
+        200: { description: 'List of API keys' },
+        401: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const query = ApiKeyQuerySchema.parse(request.query);
     const { page, pageSize, search } = query;
@@ -36,6 +53,23 @@ export async function keyRoutes(fastify: FastifyInstance) {
   // Get a specific API key - requires authentication
   fastify.get('/keys/:id', {
     onRequest: authHook,
+    schema: {
+      description: 'Get a specific API key by ID',
+      tags: ['API Keys'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'API Key ID' },
+        },
+      },
+      response: {
+        200: { description: 'API Key details' },
+        401: { $ref: '#/components/schemas/Error' },
+        404: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
 
@@ -59,6 +93,17 @@ export async function keyRoutes(fastify: FastifyInstance) {
   // Create a new API key - requires authentication
   fastify.post('/keys', {
     onRequest: authHook,
+    schema: {
+      description: 'Create a new API key',
+      tags: ['API Keys'],
+      security: [{ bearerAuth: [] }],
+      body: { $ref: '#/components/schemas/CreateApiKeyRequest' },
+      response: {
+        201: { description: 'API Key created successfully' },
+        400: { $ref: '#/components/schemas/Error' },
+        401: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, reply) => {
     const data = CreateApiKeySchema.parse(request.body);
 
@@ -73,6 +118,23 @@ export async function keyRoutes(fastify: FastifyInstance) {
   // Delete an API key - requires authentication
   fastify.delete('/keys/:id', {
     onRequest: authHook,
+    schema: {
+      description: 'Delete an API key',
+      tags: ['API Keys'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'API Key ID' },
+        },
+      },
+      response: {
+        200: { description: 'API Key deleted successfully' },
+        401: { $ref: '#/components/schemas/Error' },
+        404: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
 

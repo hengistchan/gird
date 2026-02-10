@@ -43,6 +43,27 @@ export async function serverRoutes(fastify: FastifyInstance) {
   // List all servers - requires authentication
   fastify.get('/servers', {
     onRequest: authHook,
+    schema: {
+      description: 'List all MCP servers',
+      tags: ['Servers'],
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'number', minimum: 1, default: 1, description: 'Page number' },
+          pageSize: { type: 'number', minimum: 1, maximum: 100, default: 20, description: 'Items per page' },
+          type: { type: 'string', enum: ['STDIO', 'SSE', 'AWS_LAMBDA', 'EXECUTABLE'], description: 'Filter by server type' },
+          status: { type: 'string', enum: ['ACTIVE', 'STOPPED', 'ERROR'], description: 'Filter by deployment status' },
+          search: { type: 'string', description: 'Search in server name' },
+          sortBy: { type: 'string', enum: ['name', 'createdAt', 'updatedAt'], default: 'createdAt', description: 'Sort field' },
+          sortOrder: { type: 'string', enum: ['asc', 'desc'], default: 'desc', description: 'Sort order' },
+        },
+      },
+      response: {
+        200: { description: 'List of servers' },
+        401: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const query = ServerQuerySchema.parse(request.query);
     const { page, pageSize, type, status, search, sortBy, sortOrder } = query;
@@ -68,6 +89,23 @@ export async function serverRoutes(fastify: FastifyInstance) {
   // Get a specific server - requires authentication
   fastify.get('/servers/:id', {
     onRequest: authHook,
+    schema: {
+      description: 'Get a specific MCP server by ID',
+      tags: ['Servers'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'Server ID' },
+        },
+      },
+      response: {
+        200: { description: 'Server details' },
+        401: { $ref: '#/components/schemas/Error' },
+        404: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
 
@@ -79,6 +117,17 @@ export async function serverRoutes(fastify: FastifyInstance) {
   // Create a new server - requires authentication
   fastify.post('/servers', {
     onRequest: authHook,
+    schema: {
+      description: 'Create a new MCP server',
+      tags: ['Servers'],
+      security: [{ bearerAuth: [] }],
+      body: { $ref: '#/components/schemas/CreateServerRequest' },
+      response: {
+        201: { description: 'Server created successfully' },
+        400: { $ref: '#/components/schemas/Error' },
+        401: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, reply) => {
     const data = CreateServerSchema.parse(request.body);
 
@@ -95,6 +144,25 @@ export async function serverRoutes(fastify: FastifyInstance) {
   // Update a server - requires authentication
   fastify.put('/servers/:id', {
     onRequest: authHook,
+    schema: {
+      description: 'Update an existing MCP server',
+      tags: ['Servers'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'Server ID' },
+        },
+      },
+      body: { $ref: '#/components/schemas/UpdateServerRequest' },
+      response: {
+        200: { description: 'Server updated successfully' },
+        400: { $ref: '#/components/schemas/Error' },
+        401: { $ref: '#/components/schemas/Error' },
+        404: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
     const data = UpdateServerSchema.parse(request.body);
@@ -111,6 +179,23 @@ export async function serverRoutes(fastify: FastifyInstance) {
   // Delete a server - requires authentication
   fastify.delete('/servers/:id', {
     onRequest: authHook,
+    schema: {
+      description: 'Delete an MCP server',
+      tags: ['Servers'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'Server ID' },
+        },
+      },
+      response: {
+        200: { description: 'Server deleted successfully' },
+        401: { $ref: '#/components/schemas/Error' },
+        404: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
 
@@ -122,6 +207,32 @@ export async function serverRoutes(fastify: FastifyInstance) {
   // Start server deployment - requires authentication
   fastify.post('/servers/:id/start', {
     onRequest: authHook,
+    schema: {
+      description: 'Start a server deployment',
+      tags: ['Servers'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'Server ID' },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['LOCAL_PROCESS', 'DOCKER_COMPOSE'], description: 'Deployment type' },
+          config: { type: 'object', description: 'Deployment configuration' },
+        },
+      },
+      response: {
+        200: { description: 'Deployment started successfully' },
+        400: { $ref: '#/components/schemas/Error' },
+        401: { $ref: '#/components/schemas/Error' },
+        404: { $ref: '#/components/schemas/Error' },
+        500: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
     const body = request.body as { type?: string; config?: Record<string, unknown> };
@@ -217,6 +328,24 @@ export async function serverRoutes(fastify: FastifyInstance) {
   // Stop server deployment - requires authentication
   fastify.post('/servers/:id/stop', {
     onRequest: authHook,
+    schema: {
+      description: 'Stop a server deployment',
+      tags: ['Servers'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'Server ID' },
+        },
+      },
+      response: {
+        200: { description: 'Deployment stopped successfully' },
+        401: { $ref: '#/components/schemas/Error' },
+        404: { $ref: '#/components/schemas/Error' },
+        500: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
 
@@ -281,6 +410,30 @@ export async function serverRoutes(fastify: FastifyInstance) {
   // Get server logs - requires authentication
   fastify.get('/servers/:id/logs', {
     onRequest: authHook,
+    schema: {
+      description: 'Get server deployment logs',
+      tags: ['Servers'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', description: 'Server ID' },
+        },
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          tail: { type: 'string', default: '100', description: 'Number of lines to retrieve' },
+        },
+      },
+      response: {
+        200: { description: 'Server logs' },
+        401: { $ref: '#/components/schemas/Error' },
+        404: { $ref: '#/components/schemas/Error' },
+        500: { $ref: '#/components/schemas/Error' },
+      },
+    },
   }, async (request, reply) => {
     const { id } = IdParamsSchema.parse(request.params);
     const query = request.query as { tail?: string };
@@ -310,9 +463,10 @@ export async function serverRoutes(fastify: FastifyInstance) {
           errorText,
         });
 
-        return reply.code(response.status).send({
+        return reply.code(500).send({
+          success: false,
           error: `Failed to retrieve logs from agent: ${errorText}`,
-          serverId: id,
+          code: 'AGENT_ERROR',
         });
       }
 
@@ -328,8 +482,9 @@ export async function serverRoutes(fastify: FastifyInstance) {
       logger.error('Failed to fetch logs from agent', error as Error, { serverId: id });
 
       return reply.code(500).send({
+        success: false,
         error: `Failed to retrieve logs: ${(error as Error).message}`,
-        serverId: id,
+        code: 'LOGS_FETCH_ERROR',
       });
     }
   });

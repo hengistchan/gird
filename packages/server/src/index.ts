@@ -4,6 +4,8 @@
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { PrismaClient } from '@prisma/client';
 import { serverRoutes } from './routes/servers.js';
 import { keyRoutes } from './routes/keys.js';
@@ -39,6 +41,183 @@ async function createServer() {
   await fastify.register(cors, {
     origin: true,
     credentials: true,
+  });
+
+  // Register Swagger for OpenAPI documentation
+  await fastify.register(swagger, {
+    openapi: {
+      openapi: '3.0.0',
+      info: {
+        title: 'Gird API',
+        description: `## Gird MCP Server Management API
+
+**Gird** is an MCP (Model Context Protocol) server management system - a unified API gateway for deploying, managing, and proxying MCP servers with API key authentication and access control.
+
+### Authentication
+
+All API endpoints (except \`/health\` and \`/docs\`) require authentication using an API key in the \`Authorization\` header:
+
+\`\`\`
+Authorization: Bearer gird_sk_<your-key-here>
+\`\`\`
+
+### Server Types
+
+Gird supports multiple MCP server types:
+- **STDIO**: Local process with stdio communication
+- **SSE**: Remote SSE server
+- **AWS_LAMBDA**: AWS Lambda function
+- **EXECUTABLE**: Executable binary
+
+### Deployment Types
+
+- **LOCAL_PROCESS**: Spawns child processes managed by the agent
+- **DOCKER_COMPOSE**: Manages Docker containers
+
+For more information, see the [GitHub repository](https://github.com/example/gird).`,
+        version: '1.0.0',
+        contact: {
+          name: 'Gird Project',
+        },
+      },
+      servers: [
+        {
+          url: 'http://localhost:3000',
+          description: 'Local development server',
+        },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'API Key',
+            description: 'API key authentication. Use the format: Bearer gird_sk_<your-key>',
+          },
+        },
+        schemas: {
+          Error: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean', example: false },
+              error: { type: 'string' },
+              code: { type: 'string' },
+              details: { type: 'object' },
+            },
+          },
+          ServerType: {
+            type: 'string',
+            enum: ['STDIO', 'SSE', 'AWS_LAMBDA', 'EXECUTABLE'],
+            description: 'The type of MCP server',
+          },
+          StdioServerConfig: {
+            type: 'object',
+            properties: {
+              command: { type: 'string', description: 'Command to execute' },
+              args: { type: 'array', items: { type: 'string' }, description: 'Command arguments' },
+              env: { type: 'object', additionalProperties: { type: 'string' }, description: 'Environment variables' },
+              cwd: { type: 'string', description: 'Working directory' },
+            },
+          },
+          SseServerConfig: {
+            type: 'object',
+            properties: {
+              url: { type: 'string', format: 'uri', description: 'SSE server URL' },
+              headers: { type: 'object', additionalProperties: { type: 'string' }, description: 'HTTP headers' },
+            },
+          },
+          AwsLambdaServerConfig: {
+            type: 'object',
+            properties: {
+              functionName: { type: 'string', description: 'Lambda function name' },
+              region: { type: 'string', description: 'AWS region' },
+              credentials: {
+                type: 'object',
+                properties: {
+                  accessKeyId: { type: 'string' },
+                  secretAccessKey: { type: 'string' },
+                },
+              },
+            },
+          },
+          ExecutableServerConfig: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: 'Path to executable' },
+              args: { type: 'array', items: { type: 'string' }, description: 'Command arguments' },
+              env: { type: 'object', additionalProperties: { type: 'string' }, description: 'Environment variables' },
+            },
+          },
+          CreateServerRequest: {
+            type: 'object',
+            required: ['name', 'type'],
+            properties: {
+              name: { type: 'string', minLength: 1, maxLength: 100, description: 'Server name' },
+              type: { $ref: '#/components/schemas/ServerType' },
+              config: { oneOf: [
+                { $ref: '#/components/schemas/StdioServerConfig' },
+                { $ref: '#/components/schemas/SseServerConfig' },
+                { $ref: '#/components/schemas/AwsLambdaServerConfig' },
+                { $ref: '#/components/schemas/ExecutableServerConfig' },
+              ]},
+              description: { type: 'string', description: 'Server description' },
+            },
+          },
+          UpdateServerRequest: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', minLength: 1, maxLength: 100, description: 'Server name' },
+              config: { oneOf: [
+                { $ref: '#/components/schemas/StdioServerConfig' },
+                { $ref: '#/components/schemas/SseServerConfig' },
+                { $ref: '#/components/schemas/AwsLambdaServerConfig' },
+                { $ref: '#/components/schemas/ExecutableServerConfig' },
+              ]},
+              description: { type: 'string', description: 'Server description' },
+            },
+          },
+          DeploymentType: {
+            type: 'string',
+            enum: ['LOCAL_PROCESS', 'DOCKER_COMPOSE'],
+            description: 'The type of deployment',
+          },
+          ApiKeyPermissions: {
+            type: 'object',
+            properties: {
+              serverIds: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Allowed server IDs (null for all servers)',
+                nullable: true,
+              },
+            },
+          },
+          CreateApiKeyRequest: {
+            type: 'object',
+            required: ['name', 'permissions'],
+            properties: {
+              name: { type: 'string', minLength: 1, maxLength: 100, description: 'API key name' },
+              permissions: { $ref: '#/components/schemas/ApiKeyPermissions' },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Register Swagger UI
+  await fastify.register(swaggerUi, {
+    routePrefix: '/docs',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: false,
+    },
+    staticCSP: true,
+    transformStaticCSP: (header) => header,
+    transformSpecification: (swaggerObject) => {
+      return swaggerObject;
+    },
+    transformSpecificationClone: true,
   });
 
   // Register request ID header hook (must be before request logger)
@@ -106,7 +285,21 @@ async function createServer() {
   });
 
   // Health check
-  fastify.get('/health', async () => ({
+  fastify.get('/health', {
+    schema: {
+      description: 'Health check endpoint',
+      tags: ['Health'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            timestamp: { type: 'string' },
+          },
+        },
+      },
+    },
+  }, async () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
   }));
@@ -132,6 +325,7 @@ async function main() {
   try {
     await server.listen({ port, host });
     logger.info(`API server listening on ${host}:${port}`);
+    logger.info(`Swagger UI available at http://${host}:${port}/docs`);
   } catch (err) {
     logger.error('Failed to start server', err as Error);
     process.exit(1);
