@@ -8,6 +8,7 @@ import { PrismaClient } from '@prisma/client';
 import { serverRoutes } from './routes/servers.js';
 import { keyRoutes } from './routes/keys.js';
 import { getConfig, createLogger, GirdError } from '@gird/core';
+import { requestLoggerHook, requestIdHook, logError, type RequestLogContext } from './middleware/logger.js';
 
 // Re-export generateApiKey and hashApiKey for use in routes
 export { generateApiKey, hashApiKey } from '@gird/core';
@@ -40,6 +41,12 @@ async function createServer() {
     credentials: true,
   });
 
+  // Register request ID header hook (must be before request logger)
+  fastify.addHook('onRequest', requestIdHook);
+
+  // Register request logger (before routes)
+  fastify.addHook('onRequest', requestLoggerHook);
+
   // Add Prisma to request and instance context
   fastify.addHook('onRequest', async (request) => {
     request.prisma = prisma;
@@ -50,16 +57,20 @@ async function createServer() {
 
   // Global error handler
   fastify.setErrorHandler((error, request, reply) => {
-    logger.error('Request error', error instanceof Error ? error : undefined, {
+    const context: RequestLogContext = {
+      requestId: String(request.id),
       method: request.method,
       url: request.url,
-    });
+      ip: request.ip,
+    };
+    logError(error, context);
 
     if (error instanceof GirdError) {
       reply.code(error.statusCode).send({
         error: error.message,
         code: error.code,
         details: error.details,
+        success: false,
       });
       return;
     }
@@ -71,6 +82,7 @@ async function createServer() {
         error: 'Validation failed',
         code: 'VALIDATION_ERROR',
         details: zodError.validation,
+        success: false,
       });
       return;
     }
@@ -79,6 +91,7 @@ async function createServer() {
     reply.code(500).send({
       error: 'Internal server error',
       code: 'INTERNAL_ERROR',
+      success: false,
     });
   });
 
@@ -88,6 +101,7 @@ async function createServer() {
       error: 'Not found',
       code: 'NOT_FOUND',
       path: request.url,
+      success: false,
     });
   });
 

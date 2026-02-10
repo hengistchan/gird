@@ -9,7 +9,7 @@ import { authHook, optionalAuthHook } from './auth.js';
 import { proxyHandler, healthHandler, listServersHandler } from './proxy.js';
 import { getConfig, createLogger, getPrisma, disconnectPrisma } from '@gird/core';
 import { registry } from './metrics/index.js';
-import { sseHandler, eventsHandler } from './realtime/handlers.js';
+import { sseHandler, eventsHandler, sseStatsHandler } from './realtime/handlers.js';
 import {
   startDeploymentHandler,
   stopDeploymentHandler,
@@ -64,6 +64,12 @@ async function createServer() {
   fastify.get('/events', {
     onRequest: [optionalAuthHook],
     handler: sseHandler,
+  });
+
+  // SSE connection stats endpoint (auth optional)
+  fastify.get('/events/stats', {
+    onRequest: [optionalAuthHook],
+    handler: sseStatsHandler,
   });
 
   // REST endpoint to emit events (auth required)

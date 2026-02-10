@@ -3,46 +3,37 @@
  */
 
 import type { Config } from './types.js';
-
-const DEFAULT_CONFIG: Config = {
-  database: {
-    url: 'file:./dev.db',
-  },
-  agent: {
-    port: 3001,
-    host: '0.0.0.0',
-  },
-  api: {
-    port: 3000,
-    host: '0.0.0.0',
-  },
-  dashboard: {
-    port: 5173,
-  },
-  apiKeySecret: 'change-this-in-production',
-};
+import { getEnv, isDev } from './env.js';
 
 /**
  * Load configuration from environment variables
+ * Automatically validates the config on load
+ * @throws {Error} If configuration is invalid (especially in production)
  */
 export function loadConfig(): Config {
-  return {
+  const env = getEnv();
+
+  const config: Config = {
     database: {
-      url: process.env.DATABASE_URL ?? DEFAULT_CONFIG.database.url,
+      url: env.DATABASE_URL,
     },
     agent: {
-      port: parseInt(process.env.AGENT_PORT ?? String(DEFAULT_CONFIG.agent.port), 10),
-      host: process.env.AGENT_HOST ?? DEFAULT_CONFIG.agent.host,
+      port: env.AGENT_PORT,
+      host: env.AGENT_HOST,
     },
     api: {
-      port: parseInt(process.env.API_PORT ?? String(DEFAULT_CONFIG.api.port), 10),
-      host: process.env.API_HOST ?? DEFAULT_CONFIG.api.host,
+      port: env.API_PORT,
+      host: env.API_HOST,
     },
     dashboard: {
-      port: parseInt(process.env.DASHBOARD_PORT ?? String(DEFAULT_CONFIG.dashboard.port), 10),
+      port: env.DASHBOARD_PORT,
     },
-    apiKeySecret: process.env.API_KEY_SECRET ?? DEFAULT_CONFIG.apiKeySecret,
+    apiKeySecret: env.API_KEY_SECRET,
   };
+
+  validateConfig(config);
+
+  return config;
 }
 
 /**
@@ -66,6 +57,8 @@ export function resetConfig(): void {
 
 /**
  * Validate configuration
+ * In production mode, throws an error if configuration is invalid
+ * In development mode, returns validation result without throwing
  */
 export function validateConfig(config: Config): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
@@ -86,12 +79,30 @@ export function validateConfig(config: Config): { valid: boolean; errors: string
     errors.push('DASHBOARD_PORT must be between 1 and 65535');
   }
 
-  if (config.apiKeySecret === 'change-this-in-production' || config.apiKeySecret.length < 32) {
-    errors.push('API_KEY_SECRET must be set to a secure random string (at least 32 characters)');
+  // In production, API_KEY_SECRET must be properly set
+  if (!isDev()) {
+    if (config.apiKeySecret === 'change-this-in-production' ||
+        config.apiKeySecret.length < 32) {
+      errors.push('API_KEY_SECRET must be set to a secure random string (at least 32 characters) in production');
+    }
+  } else {
+    // In development, warn but don't fail
+    if (config.apiKeySecret === 'change-this-in-production' || config.apiKeySecret.length < 32) {
+      console.warn('Warning: API_KEY_SECRET should be set to a secure random string (at least 32 characters)');
+    }
   }
 
-  return {
+  const result = {
     valid: errors.length === 0,
     errors,
   };
+
+  // Throw in production if invalid
+  if (!result.valid && !isDev()) {
+    throw new Error(
+      `Invalid configuration:\n${errors.map(e => `  - ${e}`).join('\n')}`
+    );
+  }
+
+  return result;
 }

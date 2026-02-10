@@ -5,11 +5,14 @@
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
-import { createLogger } from '@gird/core';
+import { createLogger, DEFAULT_TIMEOUTS } from '@gird/core';
 import type { DockerDeploymentConfig } from '@gird/core';
 import { DeploymentError } from '@gird/core';
 
 const logger = createLogger('deployment:docker');
+
+// Timeout for Docker commands (60 seconds)
+const DOCKER_COMMAND_TIMEOUT = DEFAULT_TIMEOUTS.DOCKER_COMMAND;
 
 export interface ContainerHandle {
   containerId: string;
@@ -24,11 +27,16 @@ const runningContainers = new Map<string, ContainerHandle>();
 
 /**
  * Execute a Docker command with proper argument handling (no shell injection)
+ * @param args - Docker command arguments
+ * @param options.cwd - Working directory
+ * @param options.timeout - Command timeout in milliseconds (defaults to DOCKER_COMMAND_TIMEOUT)
  */
 async function dockerCommand(
   args: string[],
-  options: { cwd?: string } = {}
+  options: { cwd?: string; timeout?: number } = {}
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
+  const timeout = options.timeout ?? DOCKER_COMMAND_TIMEOUT;
+
   return new Promise((resolve, reject) => {
     const child = spawn('docker', args, {
       cwd: options.cwd,
@@ -46,11 +54,19 @@ async function dockerCommand(
       stderr += data.toString();
     });
 
+    // Set up timeout to prevent hanging commands
+    const timeoutHandle = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`Docker command timed out after ${timeout}ms: docker ${args.join(' ')}`));
+    }, timeout);
+
     child.on('close', (code) => {
+      clearTimeout(timeoutHandle);
       resolve({ stdout, stderr, exitCode: code });
     });
 
     child.on('error', (error) => {
+      clearTimeout(timeoutHandle);
       reject(new Error(`Failed to spawn docker process: ${error.message}`));
     });
   });

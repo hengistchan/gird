@@ -5,10 +5,13 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import type { DeploymentType, McpRequest, McpResponse } from '@gird/core';
-import { ProxyError, NotFoundError, DeploymentError } from '@gird/core';
+import { ProxyError, NotFoundError, DeploymentError, createTimeoutSignal, DEFAULT_TIMEOUTS } from '@gird/core';
 import { createLogger } from '@gird/core';
 
 const logger = createLogger('proxy');
+
+// Timeout for proxy requests (30 seconds)
+const PROXY_TIMEOUT = DEFAULT_TIMEOUTS.PROXY_REQUEST;
 
 /**
  * Get the deployment details for a server
@@ -69,6 +72,9 @@ async function proxyToHttp(
     if (req.body) {
       init.body = JSON.stringify(req.body);
     }
+
+    // Add timeout to prevent hanging requests
+    init.signal = createTimeoutSignal(PROXY_TIMEOUT);
 
     // Forward the request
     const response = await fetch(url, init);

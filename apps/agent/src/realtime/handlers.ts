@@ -10,14 +10,27 @@ import { emitDeploymentStatus, emitHealthStatus, emitLog, emitMetric, emitError 
  * SSE endpoint handler - establishes Server-Sent Events connection
  */
 export async function sseHandler(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // Get client metadata from auth if available
+  const apiKey = (request as unknown as { apiKey?: { id: string; tenantId?: string } }).apiKey;
+
+  // Get tenantId for connection limit checking
+  const tenantId = apiKey?.tenantId;
+
+  // Check connection limits BEFORE setting headers
+  const limitCheck = sseManager.canConnect(tenantId);
+  if (!limitCheck.success) {
+    reply.code(429).send({
+      error: limitCheck.reason || 'Connection limit reached',
+      retryAfter: 60,
+    });
+    return;
+  }
+
   // Set SSE headers
   reply.raw.setHeader('Content-Type', 'text/event-stream');
   reply.raw.setHeader('Cache-Control', 'no-cache');
   reply.raw.setHeader('Connection', 'keep-alive');
   reply.raw.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
-
-  // Get client metadata from auth if available
-  const apiKey = (request as unknown as { apiKey?: { id: string; tenantId?: string } }).apiKey;
 
   // Get query parameters for filtering
   const deploymentId = (request.query as { deploymentId?: string })?.deploymentId;
@@ -171,4 +184,12 @@ export async function eventsHandler(request: FastifyRequest, reply: FastifyReply
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
+}
+
+/**
+ * SSE stats endpoint handler - returns connection statistics
+ */
+export async function sseStatsHandler(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const stats = sseManager.getConnectionStats();
+  reply.send(stats);
 }

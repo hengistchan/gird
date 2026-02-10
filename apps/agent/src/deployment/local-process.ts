@@ -12,6 +12,17 @@ const logger = createLogger('deployment:local');
 // Maximum log lines to buffer
 const MAX_LOG_LINES = 1000;
 
+/**
+ * Process state enumeration
+ */
+export enum ProcessState {
+  Starting = 'starting',
+  Running = 'running',
+  Stopping = 'stopping',
+  Stopped = 'stopped',
+  Error = 'error',
+}
+
 export interface ProcessHandle {
   pid: number;
   process: ChildProcess;
@@ -19,6 +30,7 @@ export interface ProcessHandle {
   serverName: string;
   startTime: Date;
   logBuffer: string[];
+  state: ProcessState;
 }
 
 // Track running processes
@@ -82,6 +94,7 @@ export async function startLocalProcess(
     serverName,
     startTime: new Date(),
     logBuffer: [],
+    state: ProcessState.Starting,
   };
 
   // Setup log buffering
@@ -123,6 +136,9 @@ export async function startLocalProcess(
     logger.info(`[${serverName}] Process exited`, { code, signal });
     addLog(`[system] Process exited with code ${code}, signal ${signal}`);
 
+    // Update state
+    handle.state = ProcessState.Stopped;
+
     // Clear the log buffer to prevent memory leak
     handle.logBuffer = [];
 
@@ -133,6 +149,9 @@ export async function startLocalProcess(
     logger.error(`[${serverName}] Process error`, error);
     addLog(`[system] Process error: ${error.message}`);
 
+    // Update state
+    handle.state = ProcessState.Error;
+
     // Clear the log buffer to prevent memory leak
     handle.logBuffer = [];
 
@@ -141,6 +160,9 @@ export async function startLocalProcess(
 
   // Store the process handle
   runningProcesses.set(serverId, handle);
+
+  // Update state to running after successful setup
+  handle.state = ProcessState.Running;
 
   logger.info(`Started local process for server: ${serverName} (PID: ${childProcess.pid})`);
 
@@ -159,28 +181,52 @@ export async function stopLocalProcess(serverId: string, serverName: string): Pr
     return;
   }
 
+  // Check if already stopping or stopped
+  if (handle.state === ProcessState.Stopping || handle.state === ProcessState.Stopped) {
+    logger.info(`Process already stopping or stopped: ${serverName}`);
+    return;
+  }
+
+  // Update state to stopping
+  handle.state = ProcessState.Stopping;
+
   return new Promise((resolve) => {
+    let cleaned = false; // Flag to prevent double cleanup
+
+    const cleanup = (reason: string) => {
+      if (cleaned) {
+        return;
+      }
+      cleaned = true;
+
+      logger.info(`[${serverName}] Cleanup complete (${reason})`);
+
+      // Clear the log buffer to prevent memory leak
+      handle.logBuffer = [];
+
+      // Remove all listeners to prevent further callbacks
+      handle.process.removeAllListeners();
+
+      // Remove from running processes
+      runningProcesses.delete(serverId);
+
+      // Update state
+      handle.state = ProcessState.Stopped;
+
+      resolve();
+    };
+
     const timeout = setTimeout(() => {
       // Force kill if graceful shutdown fails
-      logger.warn(`Force killing process for server: ${serverName}`);
+      logger.warn(`Force killing process for server: ${serverName} (timeout)`);
       handle.process.kill('SIGKILL');
-
-      // Clear the log buffer to prevent memory leak
-      handle.logBuffer = [];
-
-      runningProcesses.delete(serverId);
-      resolve();
+      cleanup('timeout');
     }, 5000);
 
-    handle.process.once('exit', () => {
+    handle.process.once('exit', (code, signal) => {
       clearTimeout(timeout);
-
-      // Clear the log buffer to prevent memory leak
-      handle.logBuffer = [];
-
-      runningProcesses.delete(serverId);
-      logger.info(`Stopped local process for server: ${serverName}`);
-      resolve();
+      logger.info(`[${serverName}] Process stopped (code: ${code}, signal: ${signal})`);
+      cleanup('exit');
     });
 
     // Try graceful shutdown first

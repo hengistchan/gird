@@ -655,3 +655,59 @@ export interface ServerTemplate {
     autoRestart?: Partial<RestartPolicy>;
   };
 }
+
+// ============================================================================
+// API Response Types
+// ============================================================================
+
+export interface ApiResponse<T> {
+  data: T;
+  success: true;
+}
+
+export interface ApiError {
+  error: string;
+  code: string;
+  details?: unknown;
+  success: false;
+}
+
+export interface PaginationMeta {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
+  success: true;
+}
+
+export interface ListResponse<T> {
+  items: T[];
+  total: number;
+  success: true;
+}
+
+// ============================================================================
+// Pagination Query Types
+// ============================================================================
+
+export interface PaginationQuery {
+  page: number;
+  pageSize: number;
+}
+
+export interface ServerListQuery extends PaginationQuery {
+  type?: ServerType;
+  status?: ServerStatus;
+  search?: string;
+  sortBy?: 'name' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface ApiKeyListQuery extends PaginationQuery {
+  search?: string;
+}

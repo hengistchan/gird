@@ -3,17 +3,30 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
-import { ValidationError, NotFoundError, DeploymentError } from '@gird/core';
+import { NotFoundError, DeploymentError, createTimeoutSignal, DEFAULT_TIMEOUTS } from '@gird/core';
 import { createLogger, getConfig } from '@gird/core';
 import {
   CreateServerSchema,
   UpdateServerSchema,
   IdParamsSchema,
+  ServerQuerySchema,
 } from '../schemas.js';
 import { authHook } from '../middleware/auth.js';
+import {
+  success,
+  paginated,
+  created,
+  updated,
+  deleted as deletedResponse,
+  deploymentStarted,
+  deploymentStopped,
+} from '../utils/response.js';
+import { ServerService } from '../services/index.js';
 
 const logger = createLogger('api:servers');
+
+// Timeout for agent requests (30 seconds)
+const AGENT_REQUEST_TIMEOUT = DEFAULT_TIMEOUTS.AGENT_REQUEST;
 
 /**
  * Get agent URL for making requests to the agent service
@@ -24,34 +37,32 @@ function getAgentUrl(): string {
 }
 
 export async function serverRoutes(fastify: FastifyInstance) {
-  const prisma = fastify.prisma as PrismaClient;
+  // Initialize services
+  const serverService = new ServerService();
 
   // List all servers - requires authentication
   fastify.get('/servers', {
     onRequest: authHook,
-  }, async (_request, _reply) => {
-    const servers = await prisma.server.findMany({
-      include: {
-        deployments: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
+  }, async (request, _reply) => {
+    const query = ServerQuerySchema.parse(request.query);
+    const { page, pageSize, type, status, search, sortBy, sortOrder } = query;
+
+    const result = await serverService.list({
+      includeDeployments: true,
+      filters: {
+        ...(type !== undefined && { type }),
+        ...(status !== undefined && { status }),
+        ...(search !== undefined && { search }),
       },
-      orderBy: { createdAt: 'desc' },
+      pagination: {
+        page,
+        pageSize,
+        sortBy,
+        sortOrder,
+      },
     });
 
-    return {
-      servers: servers.map((s) => ({
-        id: s.id,
-        name: s.name,
-        type: s.type,
-        status: s.status,
-        description: s.description,
-        currentDeployment: s.deployments[0] || null,
-        createdAt: s.createdAt.toISOString(),
-        updatedAt: s.updatedAt.toISOString(),
-      })),
-    };
+    return paginated(result.items, result.page, result.pageSize, result.total);
   });
 
   // Get a specific server - requires authentication
@@ -60,42 +71,9 @@ export async function serverRoutes(fastify: FastifyInstance) {
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
 
-    const server = await prisma.server.findUnique({
-      where: { id },
-      include: {
-        deployments: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
+    const server = await serverService.findById(id);
 
-    if (!server) {
-      throw new NotFoundError('Server', id);
-    }
-
-    return {
-      server: {
-        id: server.id,
-        name: server.name,
-        type: server.type,
-        status: server.status,
-        description: server.description,
-        config: server.config,
-        deployments: server.deployments.map((d) => ({
-          id: d.id,
-          type: d.type,
-          status: d.status,
-          port: d.port,
-          host: d.host,
-          containerId: d.containerId,
-          pid: d.pid,
-          createdAt: d.createdAt.toISOString(),
-          updatedAt: d.updatedAt.toISOString(),
-        })),
-        createdAt: server.createdAt.toISOString(),
-        updatedAt: server.updatedAt.toISOString(),
-      },
-    };
+    return success({ server });
   });
 
   // Create a new server - requires authentication
@@ -104,37 +82,14 @@ export async function serverRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const data = CreateServerSchema.parse(request.body);
 
-    // Check if server with same name exists
-    const existing = await prisma.server.findUnique({
-      where: { name: data.name },
+    const server = await serverService.create({
+      name: data.name,
+      type: data.type,
+      config: (data.config ?? {}) as any,
+      ...(data.description !== undefined && { description: data.description }),
     });
 
-    if (existing) {
-      throw new ValidationError(`Server with name '${data.name}' already exists`);
-    }
-
-    const server = await prisma.server.create({
-      data: {
-        name: data.name,
-        type: data.type,
-        config: data.config ?? {},
-        description: data.description ?? null,
-      },
-    });
-
-    logger.info(`Created server: ${server.name} (${server.id})`);
-
-    reply.status(201).send({
-      server: {
-        id: server.id,
-        name: server.name,
-        type: server.type,
-        status: server.status,
-        description: server.description,
-        createdAt: server.createdAt.toISOString(),
-        updatedAt: server.updatedAt.toISOString(),
-      },
-    });
+    reply.status(201).send(created(server, 'Server'));
   });
 
   // Update a server - requires authentication
@@ -144,92 +99,37 @@ export async function serverRoutes(fastify: FastifyInstance) {
     const { id } = IdParamsSchema.parse(request.params);
     const data = UpdateServerSchema.parse(request.body);
 
-    // Check if server exists
-    const existing = await prisma.server.findUnique({
-      where: { id },
+    const server = await serverService.update(id, {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.config !== undefined && { config: data.config as any }),
+      ...(data.description !== undefined && { description: data.description }),
     });
 
-    if (!existing) {
-      throw new NotFoundError('Server', id);
-    }
-
-    // Check if new name conflicts with another server
-    if (data.name && data.name !== existing.name) {
-      const nameConflict = await prisma.server.findUnique({
-        where: { name: data.name },
-      });
-
-      if (nameConflict) {
-        throw new ValidationError(`Server with name '${data.name}' already exists`);
-      }
-    }
-
-    const server = await prisma.server.update({
-      where: { id },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.config !== undefined && { config: data.config }),
-        ...(data.description !== undefined && { description: data.description }),
-      },
-    });
-
-    logger.info(`Updated server: ${server.name} (${server.id})`);
-
-    return {
-      server: {
-        id: server.id,
-        name: server.name,
-        type: server.type,
-        status: server.status,
-        description: server.description,
-        createdAt: server.createdAt.toISOString(),
-        updatedAt: server.updatedAt.toISOString(),
-      },
-    };
+    return updated(server, 'Server');
   });
 
   // Delete a server - requires authentication
   fastify.delete('/servers/:id', {
     onRequest: authHook,
-  }, async (request, reply) => {
+  }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
 
-    // Check if server exists
-    const existing = await prisma.server.findUnique({
-      where: { id },
-    });
+    await serverService.delete(id);
 
-    if (!existing) {
-      throw new NotFoundError('Server', id);
-    }
-
-    await prisma.server.delete({
-      where: { id },
-    });
-
-    logger.info(`Deleted server: ${existing.name} (${id})`);
-
-    reply.status(204).send();
+    return deletedResponse('Server');
   });
 
   // Start server deployment - requires authentication
   fastify.post('/servers/:id/start', {
     onRequest: authHook,
-  }, async (request, reply) => {
+  }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
     const body = request.body as { type?: string; config?: Record<string, unknown> };
 
-    // Check if server exists
-    const server = await prisma.server.findUnique({
-      where: { id },
-    });
-
-    if (!server) {
-      throw new NotFoundError('Server', id);
-    }
-
     try {
-      // Call the agent's deployment start endpoint
+      // Verify server exists before starting deployment
+      const server = await serverService.findBasicById(id);
+
       const agentUrl = getAgentUrl();
       const url = `${agentUrl}/deployments/${id}/start`;
 
@@ -244,6 +144,7 @@ export async function serverRoutes(fastify: FastifyInstance) {
           type: body.type,
           config: body.config,
         }),
+        signal: createTimeoutSignal(AGENT_REQUEST_TIMEOUT),
       });
 
       if (!response.ok) {
@@ -287,28 +188,23 @@ export async function serverRoutes(fastify: FastifyInstance) {
         port: data.deployment.port,
       });
 
-      // Return the deployment information
-      return reply.send({
-        deployment: {
-          id: data.deployment.id,
-          serverId: data.deployment.serverId,
-          type: data.deployment.type,
-          status: data.deployment.status,
-          port: data.deployment.port,
-          host: data.deployment.host,
-          containerId: data.deployment.containerId,
-          pid: data.deployment.pid,
-          createdAt: data.deployment.createdAt,
-          updatedAt: data.deployment.updatedAt,
-        },
+      return deploymentStarted({
+        id: data.deployment.id,
+        serverId: data.deployment.serverId,
+        type: data.deployment.type,
+        status: data.deployment.status,
+        port: data.deployment.port,
+        host: data.deployment.host,
+        containerId: data.deployment.containerId,
+        pid: data.deployment.pid,
+        createdAt: data.deployment.createdAt,
+        updatedAt: data.deployment.updatedAt,
       });
     } catch (error) {
-      // Re-throw known errors
       if (error instanceof DeploymentError || error instanceof NotFoundError) {
         throw error;
       }
 
-      // Log and wrap unexpected errors
       logger.error('Failed to start deployment via agent', error as Error, { serverId: id });
 
       throw new DeploymentError(
@@ -324,17 +220,10 @@ export async function serverRoutes(fastify: FastifyInstance) {
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
 
-    // Check if server exists
-    const server = await prisma.server.findUnique({
-      where: { id },
-    });
-
-    if (!server) {
-      throw new NotFoundError('Server', id);
-    }
-
     try {
-      // Call the agent's deployment stop endpoint
+      // Verify server exists before stopping deployment
+      const server = await serverService.findBasicById(id);
+
       const agentUrl = getAgentUrl();
       const url = `${agentUrl}/deployments/${id}/stop`;
 
@@ -345,6 +234,7 @@ export async function serverRoutes(fastify: FastifyInstance) {
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: createTimeoutSignal(AGENT_REQUEST_TIMEOUT),
       });
 
       if (!response.ok) {
@@ -373,18 +263,12 @@ export async function serverRoutes(fastify: FastifyInstance) {
 
       logger.info(`Successfully stopped deployment for server: ${server.name}`);
 
-      // Return success response
-      return {
-        success: true,
-        message: data.message || 'Deployment stopped successfully',
-      };
+      return deploymentStopped();
     } catch (error) {
-      // Re-throw known errors
       if (error instanceof DeploymentError || error instanceof NotFoundError) {
         throw error;
       }
 
-      // Log and wrap unexpected errors
       logger.error('Failed to stop deployment via agent', error as Error, { serverId: id });
 
       throw new DeploymentError(
@@ -401,17 +285,10 @@ export async function serverRoutes(fastify: FastifyInstance) {
     const { id } = IdParamsSchema.parse(request.params);
     const query = request.query as { tail?: string };
 
-    // Check if server exists
-    const server = await prisma.server.findUnique({
-      where: { id },
-    });
-
-    if (!server) {
-      throw new NotFoundError('Server', id);
-    }
-
     try {
-      // Call the agent's deployment logs endpoint
+      // Verify server exists before fetching logs
+      await serverService.findBasicById(id);
+
       const agentUrl = getAgentUrl();
       const tail = query.tail ?? '100';
       const url = `${agentUrl}/deployments/${id}/logs?tail=${tail}`;
@@ -423,6 +300,7 @@ export async function serverRoutes(fastify: FastifyInstance) {
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: createTimeoutSignal(AGENT_REQUEST_TIMEOUT),
       });
 
       if (!response.ok) {
@@ -432,7 +310,6 @@ export async function serverRoutes(fastify: FastifyInstance) {
           errorText,
         });
 
-        // Return a meaningful error response
         return reply.code(response.status).send({
           error: `Failed to retrieve logs from agent: ${errorText}`,
           serverId: id,
@@ -441,7 +318,6 @@ export async function serverRoutes(fastify: FastifyInstance) {
 
       const data = await response.json() as { success: boolean; logs: string; tail: number };
 
-      // Return the logs in the expected format
       return reply.send({
         success: true,
         logs: data.logs,

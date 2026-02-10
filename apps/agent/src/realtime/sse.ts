@@ -7,10 +7,55 @@ import { logger } from '@gird/core';
 import type { ServerEvent } from '@gird/core';
 import type { SSEClient, EventChannel, RealTimeManager, EventHandler, SSEMessage } from './types.js';
 
+const MAX_SSE_CONNECTIONS = 100;
+const MAX_SSE_CONNECTIONS_PER_TENANT = 10;
+
+export interface ConnectionLimitResult {
+  success: boolean;
+  reason?: string;
+}
+
+export interface ConnectionStats {
+  total: number;
+  byTenant: Record<string, number>;
+  limit: {
+    maxGlobal: number;
+    maxPerTenant: number;
+  };
+}
+
 export class SSEManager implements RealTimeManager {
   private clients = new Map<string, SSEClient>();
   private channels = new Map<string, EventChannel>();
   private eventHandlers = new Map<string, Set<EventHandler>>();
+  private connectionCount = 0;
+  private tenantConnectionCounts = new Map<string, number>();
+
+  /**
+   * Check if a new connection can be accepted
+   */
+  canConnect(tenantId: string | undefined): ConnectionLimitResult {
+    // Check global limit
+    if (this.connectionCount >= MAX_SSE_CONNECTIONS) {
+      return {
+        success: false,
+        reason: 'Maximum concurrent connections reached',
+      };
+    }
+
+    // Check per-tenant limit
+    if (tenantId) {
+      const tenantCount = this.tenantConnectionCounts.get(tenantId) || 0;
+      if (tenantCount >= MAX_SSE_CONNECTIONS_PER_TENANT) {
+        return {
+          success: false,
+          reason: 'Maximum concurrent connections for tenant',
+        };
+      }
+    }
+
+    return { success: true };
+  }
 
   /**
    * Register a new SSE client
@@ -25,6 +70,15 @@ export class SSEManager implements RealTimeManager {
       ipAddress: string;
     }
   ): SSEClient {
+    // Update connection counts
+    this.connectionCount++;
+    if (metadata.tenantId) {
+      this.tenantConnectionCounts.set(
+        metadata.tenantId,
+        (this.tenantConnectionCounts.get(metadata.tenantId) || 0) + 1
+      );
+    }
+
     const client: SSEClient = {
       id: clientId,
       ...metadata,
@@ -109,6 +163,17 @@ export class SSEManager implements RealTimeManager {
   disconnect(clientId: string): void {
     const client = this.clients.get(clientId);
     if (!client) return;
+
+    // Update connection counts
+    this.connectionCount = Math.max(0, this.connectionCount - 1);
+    if (client.tenantId) {
+      const count = this.tenantConnectionCounts.get(client.tenantId) || 0;
+      if (count <= 1) {
+        this.tenantConnectionCounts.delete(client.tenantId);
+      } else {
+        this.tenantConnectionCounts.set(client.tenantId, count - 1);
+      }
+    }
 
     // Unsubscribe from all channels
     this.unsubscribe(clientId);
@@ -221,6 +286,20 @@ export class SSEManager implements RealTimeManager {
       stats[name] = channel.clients.size;
     }
     return stats;
+  }
+
+  /**
+   * Get connection statistics including limits
+   */
+  getConnectionStats(): ConnectionStats {
+    return {
+      total: this.connectionCount,
+      byTenant: Object.fromEntries(this.tenantConnectionCounts),
+      limit: {
+        maxGlobal: MAX_SSE_CONNECTIONS,
+        maxPerTenant: MAX_SSE_CONNECTIONS_PER_TENANT,
+      },
+    };
   }
 
   /**

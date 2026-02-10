@@ -134,3 +134,30 @@ export const IdParamsSchema = z.object({
 export const ServerIdParamsSchema = z.object({
   serverId: z.string(),
 });
+
+// ============================================================================
+// Pagination Schemas
+// ============================================================================
+
+export const PaginationSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  pageSize: z.coerce.number().min(1).max(100).default(20),
+});
+
+export type PaginationQuery = z.infer<typeof PaginationSchema>;
+
+export const ServerQuerySchema = PaginationSchema.extend({
+  type: z.enum(['STDIO', 'SSE', 'AWS_LAMBDA', 'EXECUTABLE']).optional(),
+  status: z.enum(['ACTIVE', 'STOPPED', 'ERROR']).optional(),
+  search: z.string().optional(),
+  sortBy: z.enum(['name', 'createdAt', 'updatedAt']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export type ServerQuery = z.infer<typeof ServerQuerySchema>;
+
+export const ApiKeyQuerySchema = PaginationSchema.extend({
+  search: z.string().optional(),
+});
+
+export type ApiKeyQuery = z.infer<typeof ApiKeyQuerySchema>;
