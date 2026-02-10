@@ -3,11 +3,10 @@
  */
 
 import { Command } from 'commander';
-import { PrismaClient, type Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { generateApiKey, hashApiKey, extractApiKeyPrefix, asApiKeyPermissions } from '@gird/core';
+import { getDb } from '../lib/db.js';
 import { formatTable, formatApiKey, success, error } from '../utils/format.js';
-
-const prisma = new PrismaClient();
 
 export function registerKeyCommands(program: Command): void {
   const keyCmd = program.command('key').description('Manage API keys');
@@ -17,6 +16,7 @@ export function registerKeyCommands(program: Command): void {
     .command('list')
     .description('List all API keys')
     .action(async () => {
+      const prisma = getDb();
       const keys = await prisma.apiKey.findMany({
         orderBy: { createdAt: 'desc' },
       });
@@ -41,6 +41,7 @@ export function registerKeyCommands(program: Command): void {
     .command('info <id>')
     .description('Get API key details')
     .action(async (id: string) => {
+      const prisma = getDb();
       const key = await prisma.apiKey.findFirst({
         where: {
           OR: [{ name: id }, { id }],
@@ -70,6 +71,8 @@ export function registerKeyCommands(program: Command): void {
     .description('Create a new API key')
     .option('--servers <servers>', 'Allowed server IDs (comma-separated, or "all")')
     .action(async (name: string, options) => {
+      const prisma = getDb();
+
       // Check if key already exists
       const existing = await prisma.apiKey.findFirst({
         where: { name },
@@ -116,6 +119,7 @@ export function registerKeyCommands(program: Command): void {
     .description('Delete an API key')
     .option('-f, --force', 'Force delete without confirmation')
     .action(async (id: string, options) => {
+      const prisma = getDb();
       const key = await prisma.apiKey.findFirst({
         where: {
           OR: [{ name: id }, { id }],
