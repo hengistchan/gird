@@ -133,12 +133,11 @@ describe('Error Classes', () => {
       expect(error.details).toEqual({ resource: 'Server', id: 'server_123' });
     });
 
-    it('should handle numeric ids', () => {
-      const error = new NotFoundError('User', 42);
-      
+    it('should handle numeric string ids', () => {
+      const error = new NotFoundError('User', '42');
+
       expect(error.message).toBe("User with id '42' not found");
-      // The actual implementation preserves the original type (number)
-      expect(error.details).toEqual({ resource: 'User', id: 42 });
+      expect(error.details).toEqual({ resource: 'User', id: '42' });
     });
 
     it('should handle empty string id', () => {
@@ -381,9 +380,9 @@ describe('Error Utilities', () => {
 
     it('should handle objects that are Error-like but not GirdError', () => {
       const error = new Error('Custom');
-      (error as { code: string }).code = 'CUSTOM_CODE';
+      (error as unknown as { code: string }).code = 'CUSTOM_CODE';
       const response = getErrorResponse(error);
-      
+
       // Should still return INTERNAL_ERROR since isGirdError checks for both code and statusCode
       expect(response.code).toBe('INTERNAL_ERROR');
     });
