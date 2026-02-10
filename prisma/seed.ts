@@ -1,6 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+});
+
+/**
+ * Helper to convert RolePermission to Prisma InputJsonValue
+ */
+function toPermissionsJson(permissions: RolePermission): Prisma.InputJsonValue {
+  return permissions as unknown as Prisma.InputJsonValue;
+}
 
 /**
  * RolePermission interface
@@ -68,7 +77,7 @@ async function main() {
           name: roleData.name,
           description: roleData.description,
           isSystem: true,
-          permissions: roleData.permissions as any, // Store as JSON
+          permissions: toPermissionsJson(roleData.permissions),
         },
       });
       console.log(`Created role: ${roleData.name}`);
