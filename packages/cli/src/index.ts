@@ -5,6 +5,7 @@
 import { Command } from 'commander';
 import { registerServerCommands } from './commands/server.js';
 import { registerKeyCommands } from './commands/key.js';
+import { registerConfigCommands } from './commands/config.js';
 import { info, success, error } from './utils/format.js';
 import { closeDb, getDb } from './lib/db.js';
 import { getConfig } from '@gird/core';
@@ -22,6 +23,9 @@ registerServerCommands(program);
 
 // API Key commands
 registerKeyCommands(program);
+
+// Config commands
+registerConfigCommands(program);
 
 // System status command
 program
