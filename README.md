@@ -6,6 +6,8 @@ A unified management system for deploying and managing MCP (Model Context Protoc
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-purple)](LICENSE)
 
+**[中文文档](README.zh-CN.md)** | English
+
 ## Features
 
 ### Core Capabilities

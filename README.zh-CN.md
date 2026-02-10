@@ -6,6 +6,8 @@
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-purple)](LICENSE)
 
+**English** | [中文文档](README.zh-CN.md)
+
 ## 功能特性
 
 ### 核心能力
