@@ -148,9 +148,9 @@ describe('Error Classes', () => {
       expect(error.message).toBe('ApiKey not found');
     });
 
-    it('should handle falsy id values like null', () => {
-      const error = new NotFoundError('Resource', null);
-      
+    it('should handle no id provided', () => {
+      const error = new NotFoundError('Resource');
+
       expect(error.message).toBe('Resource not found');
     });
   });
