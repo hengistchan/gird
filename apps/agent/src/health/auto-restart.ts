@@ -3,7 +3,7 @@
  */
 
 import { DeploymentError, logger, getPrisma } from '@gird/core';
-import type { RestartPolicy } from '@gird/core';
+import type { RestartPolicy, ServerConfig, StdioServerConfig } from '@gird/core';
 import type { AutoRestartManager } from './types.js';
 
 // Maximum number of retry attempts (fallback if policy doesn't specify)
@@ -29,7 +29,8 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
       return;
     }
 
-    const config = deployment.server.config as {
+    // Type-safe config extraction using type assertion through unknown
+    const config = deployment.server.config as unknown as ServerConfig & {
       restartPolicy?: RestartPolicy | null;
     };
 
@@ -132,13 +133,15 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
       data: { status: 'STOPPED' },
     });
 
-    // Start the deployment again
+    // Start the deployment again with properly typed config
     if (deployment.type === 'DOCKER_COMPOSE') {
       const { startDockerServer } = await import('../deployment/docker-compose.js');
       await startDockerServer(deployment.serverId, deployment.server.name, {}, deployment.port ?? undefined);
     } else if (deployment.type === 'LOCAL_PROCESS') {
       const { startLocalProcess } = await import('../deployment/local-process.js');
-      await startLocalProcess(deployment.serverId, deployment.server.name, deployment.server.config as never);
+      // Use proper type assertion through unknown for server config
+      const serverConfig = deployment.server.config as unknown as StdioServerConfig;
+      await startLocalProcess(deployment.serverId, deployment.server.name, serverConfig);
     }
 
     // Update status to running

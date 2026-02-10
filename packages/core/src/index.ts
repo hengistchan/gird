@@ -72,3 +72,7 @@ export async function hashApiKey(key: string): Promise<string> {
 export async function verifyApiKey(key: string, hash: string): Promise<boolean> {
   return bcrypt.compare(key, hash);
 }
+
+// Re-export Prisma types for type-safe JSON field handling
+export { Prisma } from '@prisma/client';
+export type { PrismaClient } from '@prisma/client';

@@ -3,7 +3,7 @@
  */
 
 import type { HealthCheckConfig, HealthCheckResult } from '@gird/core';
-import { getPrisma } from '@gird/core';
+import { getPrisma, logger } from '@gird/core';
 import type { HealthCheckScheduler } from './types.js';
 
 export class HealthChecker implements HealthCheckScheduler {
@@ -199,7 +199,7 @@ export class HealthChecker implements HealthCheckScheduler {
 
     // Only restart if auto-restart is enabled
     if (config?.restartPolicy?.enabled) {
-      console.log(`Deployment ${deploymentId} is unhealthy, attempting restart...`);
+      logger.warn(`Deployment ${deploymentId} is unhealthy, attempting restart...`);
 
       // Import here to avoid circular dependency - use the singleton instance
       const { autoRestartManager } = await import('./auto-restart.js');

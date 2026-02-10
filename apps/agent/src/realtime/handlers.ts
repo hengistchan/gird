@@ -7,6 +7,16 @@ import { sseManager, generateClientId } from './sse.js';
 import { emitDeploymentStatus, emitHealthStatus, emitLog, emitMetric, emitError } from './events.js';
 
 /**
+ * Type-safe wrapper for reply.raw with SSE-required methods
+ */
+interface SSEResponse {
+  setHeader(name: string, value: string | string[]): void;
+  write(chunk: string): boolean;
+  on(event: string, handler: () => void): void;
+  writeHead?(statusCode: number, headers: Record<string, string>): void;
+}
+
+/**
  * SSE endpoint handler - establishes Server-Sent Events connection
  */
 export async function sseHandler(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -27,10 +37,11 @@ export async function sseHandler(request: FastifyRequest, reply: FastifyReply): 
   }
 
   // Set SSE headers
-  reply.raw.setHeader('Content-Type', 'text/event-stream');
-  reply.raw.setHeader('Cache-Control', 'no-cache');
-  reply.raw.setHeader('Connection', 'keep-alive');
-  reply.raw.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+  const sseResponse = reply.raw as unknown as SSEResponse;
+  sseResponse.setHeader('Content-Type', 'text/event-stream');
+  sseResponse.setHeader('Cache-Control', 'no-cache');
+  sseResponse.setHeader('Connection', 'keep-alive');
+  sseResponse.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
 
   // Get query parameters for filtering
   const deploymentId = (request.query as { deploymentId?: string })?.deploymentId;
@@ -55,8 +66,20 @@ export async function sseHandler(request: FastifyRequest, reply: FastifyReply): 
   if (serverId !== undefined) metadata.serverId = serverId;
   if (apiKey?.tenantId !== undefined) metadata.tenantId = apiKey.tenantId;
 
-  // Register the client
-  sseManager.registerClient(clientId, reply.raw as never, metadata);
+  // Register the client with a properly typed response wrapper
+  // Ensure writeHead is always defined for the SSE client type
+  const clientResponse = {
+    write: (chunk: string) => sseResponse.write(chunk),
+    writeHead: (statusCode: number, headers: Record<string, string>) => {
+      if (sseResponse.writeHead) {
+        sseResponse.writeHead(statusCode, headers);
+      }
+    },
+    on: (event: string, handler: () => void) => sseResponse.on(event, handler),
+    raw: reply.raw,
+  };
+
+  sseManager.registerClient(clientId, clientResponse, metadata);
 
   // Subscribe to channels
   sseManager.subscribe(clientId, channels);

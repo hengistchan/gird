@@ -2,8 +2,8 @@
  * Server Service - Business logic for server management
  */
 
-import { PrismaClient } from '@prisma/client';
-import { getPrisma, createLogger } from '@gird/core';
+import { getPrisma, createLogger, Prisma } from '@gird/core';
+import { asPrismaInputJsonValue } from '@gird/core';
 import type {
   ServerType,
   ServerStatus,
@@ -50,7 +50,7 @@ export interface PaginatedServersResult {
 }
 
 export class ServerService {
-  private prisma: PrismaClient;
+  private prisma: ReturnType<typeof getPrisma>;
 
   constructor() {
     this.prisma = getPrisma();
@@ -171,7 +171,7 @@ export class ServerService {
       data: {
         name: data.name,
         type: data.type,
-        config: (data.config ?? {}) as any,
+        config: asPrismaInputJsonValue(data.config ?? {}) as Prisma.InputJsonValue,
         description: data.description ?? null,
       },
     });
@@ -195,12 +195,13 @@ export class ServerService {
       await this.ensureNameAvailable(data.name, id);
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.ServerUpdateInput = {};
     if (data.name !== undefined) {
       updateData.name = data.name;
     }
     if (data.config !== undefined) {
-      updateData.config = data.config as unknown;
+      // Convert ServerConfig to Prisma.InputJsonValue via the helper
+      updateData.config = asPrismaInputJsonValue(data.config) as Prisma.InputJsonValue;
     }
     if (data.description !== undefined) {
       updateData.description = data.description;
@@ -276,14 +277,34 @@ export class ServerService {
    * Convert server to list response format
    */
   private toListResponse(
-    server: any & { deployments?: any[] },
+    server: {
+      id: string;
+      name: string;
+      type: ServerType;
+      status: ServerStatus;
+      description: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      deployments?: Array<{
+        id: string;
+        serverId: string;
+        type: string;
+        status: string;
+        port: number | null;
+        host: string | null;
+        containerId: string | null;
+        pid: number | null;
+        createdAt: Date;
+        updatedAt: Date;
+      }>;
+    },
     includeDeployment: boolean = true
   ): ServerResponse {
-    const base = {
+    const base: ServerResponse = {
       id: server.id,
       name: server.name,
-      type: server.type as ServerType,
-      status: server.status as ServerStatus,
+      type: server.type,
+      status: server.status,
       description: server.description,
       createdAt: server.createdAt.toISOString(),
       updatedAt: server.updatedAt.toISOString(),
@@ -291,20 +312,23 @@ export class ServerService {
 
     if (includeDeployment && server.deployments && server.deployments.length > 0) {
       const deployment = server.deployments[0];
-      return {
-        ...base,
+      // Return a ServerResponse with currentDeployment property added
+      // Use non-null assertion since we've verified the array has elements
+      const d = deployment!;
+      return Object.assign(base, {
         currentDeployment: {
-          id: deployment.id,
-          type: deployment.type,
-          status: deployment.status,
-          port: deployment.port,
-          host: deployment.host,
-          containerId: deployment.containerId,
-          pid: deployment.pid,
-          createdAt: deployment.createdAt.toISOString(),
-          updatedAt: deployment.updatedAt.toISOString(),
+          id: d.id,
+          serverId: d.serverId,
+          type: d.type as 'DOCKER_COMPOSE' | 'LOCAL_PROCESS',
+          status: d.status as 'RUNNING' | 'STOPPED' | 'ERROR',
+          port: d.port,
+          host: d.host,
+          containerId: d.containerId,
+          pid: d.pid,
+          createdAt: d.createdAt.toISOString(),
+          updatedAt: d.updatedAt.toISOString(),
         },
-      } as any;
+      });
     }
 
     return base;
@@ -313,12 +337,20 @@ export class ServerService {
   /**
    * Convert server to basic response format
    */
-  private toResponse(server: any): ServerResponse {
+  private toResponse(server: {
+    id: string;
+    name: string;
+    type: ServerType;
+    status: ServerStatus;
+    description: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): ServerResponse {
     return {
       id: server.id,
       name: server.name,
-      type: server.type as ServerType,
-      status: server.status as ServerStatus,
+      type: server.type,
+      status: server.status,
       description: server.description,
       createdAt: server.createdAt.toISOString(),
       updatedAt: server.updatedAt.toISOString(),
@@ -329,20 +361,41 @@ export class ServerService {
    * Convert server to detailed response format with deployments
    */
   private toDetailResponse(
-    server: any & { deployments: any[] }
+    server: {
+      id: string;
+      name: string;
+      type: ServerType;
+      status: ServerStatus;
+      description: string | null;
+      config: unknown;
+      createdAt: Date;
+      updatedAt: Date;
+      deployments: Array<{
+        id: string;
+        serverId: string;
+        type: string;
+        status: string;
+        port: number | null;
+        host: string | null;
+        containerId: string | null;
+        pid: number | null;
+        createdAt: Date;
+        updatedAt: Date;
+      }>;
+    }
   ): ServerWithDeploymentsResponse {
     return {
       id: server.id,
       name: server.name,
-      type: server.type as ServerType,
-      status: server.status as ServerStatus,
+      type: server.type,
+      status: server.status,
       description: server.description,
       config: (server.config as Record<string, unknown> | null) ?? null,
-      deployments: server.deployments.map((d: any) => ({
+      deployments: server.deployments.map((d): DeploymentResponse => ({
         id: d.id,
         serverId: d.serverId,
-        type: d.type,
-        status: d.status,
+        type: d.type as 'DOCKER_COMPOSE' | 'LOCAL_PROCESS',
+        status: d.status as 'RUNNING' | 'STOPPED' | 'ERROR',
         port: d.port,
         host: d.host,
         createdAt: d.createdAt.toISOString(),

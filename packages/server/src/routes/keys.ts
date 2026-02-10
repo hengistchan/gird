@@ -12,6 +12,7 @@ import {
   deleted as deletedResponse,
 } from '../utils/response.js';
 import { ApiKeyService } from '../services/index.js';
+import type { CreateApiKeyRequest } from '@gird/core';
 
 export async function keyRoutes(fastify: FastifyInstance) {
   // Initialize services
@@ -109,7 +110,7 @@ export async function keyRoutes(fastify: FastifyInstance) {
 
     const keyData = await apiKeyService.create({
       name: data.name,
-      permissions: data.permissions as any,
+      permissions: data.permissions as CreateApiKeyRequest['permissions'],
     });
 
     reply.status(201).send(created(keyData, 'API Key'));

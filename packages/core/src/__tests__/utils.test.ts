@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Logger, LogLevel, parseLogLevel, createLogger, logger } from './logger.js';
+import { Logger, LogLevel, parseLogLevel, createLogger, logger } from '../logger.js';
 
 describe('Logger', () => {
   beforeEach(() => {

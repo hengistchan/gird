@@ -5,6 +5,7 @@
 import type { FastifyInstance } from 'fastify';
 import { NotFoundError, DeploymentError, createTimeoutSignal, DEFAULT_TIMEOUTS } from '@gird/core';
 import { createLogger, getConfig } from '@gird/core';
+import type { ServerConfig } from '@gird/core';
 import {
   CreateServerSchema,
   UpdateServerSchema,
@@ -131,10 +132,13 @@ export async function serverRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const data = CreateServerSchema.parse(request.body);
 
+    // Convert the validated config to proper ServerConfig type
+    const serverConfig: ServerConfig = (data.config ?? {}) as ServerConfig;
+
     const server = await serverService.create({
       name: data.name,
       type: data.type,
-      config: (data.config ?? {}) as any,
+      config: serverConfig,
       ...(data.description !== undefined && { description: data.description }),
     });
 
@@ -167,11 +171,24 @@ export async function serverRoutes(fastify: FastifyInstance) {
     const { id } = IdParamsSchema.parse(request.params);
     const data = UpdateServerSchema.parse(request.body);
 
-    const server = await serverService.update(id, {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.config !== undefined && { config: data.config as any }),
-      ...(data.description !== undefined && { description: data.description }),
-    });
+    // Build update data with proper types
+    const updateData: {
+      name?: string;
+      config?: ServerConfig;
+      description?: string;
+    } = {};
+    
+    if (data.name !== undefined) {
+      updateData.name = data.name;
+    }
+    if (data.config !== undefined) {
+      updateData.config = data.config as ServerConfig;
+    }
+    if (data.description !== undefined) {
+      updateData.description = data.description;
+    }
+
+    const server = await serverService.update(id, updateData);
 
     return updated(server, 'Server');
   });

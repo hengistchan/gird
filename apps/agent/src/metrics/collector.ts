@@ -2,7 +2,7 @@
  * Metrics collector - aggregates metrics from database and stores them
  */
 
-import type { MetricLabel } from '@gird/core';
+import type { MetricLabel, Prisma } from '@gird/core';
 import { getPrisma } from '@gird/core';
 
 /**
@@ -20,7 +20,7 @@ export async function storeMetric(
       tenantId: tenantId ?? null,
       name,
       value,
-      labels: labels as never,
+      labels: labels as Prisma.InputJsonValue,
     },
   });
 }

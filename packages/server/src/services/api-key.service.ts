@@ -2,7 +2,6 @@
  * API Key Service - Business logic for API key management
  */
 
-import { PrismaClient } from '@prisma/client';
 import { getPrisma, createLogger, generateApiKey, hashApiKey, extractApiKeyPrefix } from '@gird/core';
 import type {
   CreateApiKeyRequest,
@@ -23,7 +22,7 @@ export interface ApiKeyListResponseItem {
   id: string;
   name: string;
   permissions: ApiKeyPermissions;
-  keyPrefix?: string;
+  keyPrefix?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,8 +35,11 @@ export interface PaginatedApiKeysResult {
   totalPages: number;
 }
 
+// Type for the permissions stored in the database
+type StoredPermissions = { serverIds: string[] | null } | null;
+
 export class ApiKeyService {
-  private prisma: PrismaClient;
+  private prisma: ReturnType<typeof getPrisma>;
 
   constructor() {
     this.prisma = getPrisma();
@@ -103,10 +105,11 @@ export class ApiKeyService {
     const keyHash = await hashApiKey(apiKey);
     const keyPrefix = extractApiKeyPrefix(apiKey);
 
-    // Handle the permissions field - if serverIds is undefined, set it to null
-    const permissions: Record<string, unknown> | null = data.permissions.serverIds !== undefined
-      ? { serverIds: data.permissions.serverIds }
-      : null;
+    // Handle the permissions field - convert to the format stored in database
+    // If serverIds is undefined (user didn't specify), store null meaning "all servers"
+    // If serverIds is explicitly null, also store null
+    // Otherwise store the object with serverIds array
+    const permissionsValue: StoredPermissions = { serverIds: data.permissions.serverIds ?? null };
 
     const key = await this.prisma.apiKey.create({
       data: {
@@ -114,7 +117,7 @@ export class ApiKeyService {
         keyPrefix,
         keyHash,
         name: data.name,
-        permissions: permissions as any,
+        permissions: permissionsValue,
       },
     });
 
@@ -166,7 +169,14 @@ export class ApiKeyService {
   /**
    * Convert API key to list response format (without the actual key)
    */
-  private toListResponse(key: any): ApiKeyListResponseItem {
+  private toListResponse(key: {
+    id: string;
+    name: string;
+    permissions: unknown;
+    keyPrefix: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): ApiKeyListResponseItem {
     return {
       id: key.id,
       name: key.name,
