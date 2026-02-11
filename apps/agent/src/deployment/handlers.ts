@@ -254,7 +254,7 @@ export async function startDeploymentHandler(
       },
     });
   } catch (error) {
-    logger.error(`Failed to start deployment for server: ${serverId}`, error as Error);
+    logger.error(`Failed to start deployment for server: ${serverId}`, undefined, { error });
 
     if (error instanceof NotFoundError || error instanceof DeploymentError || error instanceof ValidationError) {
       reply.code(error.statusCode).send({
@@ -347,7 +347,7 @@ export async function stopDeploymentHandler(
       message: `Deployment stopped successfully`,
     });
   } catch (error) {
-    logger.error(`Failed to stop deployment for server: ${serverId}`, error as Error);
+    logger.error(`Failed to stop deployment for server: ${serverId}`, undefined, { error });
 
     if (error instanceof NotFoundError || error instanceof DeploymentError) {
       reply.code(error.statusCode).send({
@@ -408,7 +408,7 @@ export async function getLogsHandler(
       tail,
     });
   } catch (error) {
-    logger.error(`Failed to get logs for server: ${serverId}`, error as Error);
+    logger.error(`Failed to get logs for server: ${serverId}`, undefined, { error });
 
     if (error instanceof NotFoundError) {
       reply.code(error.statusCode).send({
@@ -532,7 +532,7 @@ export async function getStatusHandler(
       runtimeStatus,
     });
   } catch (error) {
-    logger.error(`Failed to get status for server: ${serverId}`, error as Error);
+    logger.error(`Failed to get status for server: ${serverId}`, undefined, { error });
 
     if (error instanceof NotFoundError) {
       reply.code(error.statusCode).send({

@@ -94,8 +94,8 @@ async function proxyToUrl(
     const text = await response.text();
     reply.send(text);
   } catch (error) {
-    logger.error('Failed to proxy request to URL', error as Error, { url });
-    throw new ProxyError(`Failed to reach MCP server at ${url}: ${(error as Error).message}`);
+    logger.error('Failed to proxy request to URL', error instanceof Error ? error : undefined, { url });
+    throw new ProxyError(`Failed to reach MCP server at ${url}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -146,8 +146,8 @@ async function proxyToHttp(
     const text = await response.text();
     reply.send(text);
   } catch (error) {
-    logger.error('Failed to proxy request', error as Error, { url });
-    throw new ProxyError(`Failed to reach MCP server at ${url}: ${(error as Error).message}`);
+    logger.error('Failed to proxy request', error instanceof Error ? error : undefined, { url });
+    throw new ProxyError(`Failed to reach MCP server at ${url}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

@@ -333,7 +333,7 @@ export async function reconcileOnStartup(): Promise<void> {
 
     logger.info(`Reconciled ${runningDeployments.length} deployments`);
   } catch (error) {
-    logger.error('Error reconciling deployments on startup', error as Error);
+    logger.error('Error reconciling deployments on startup', undefined, { error });
   }
 }
 

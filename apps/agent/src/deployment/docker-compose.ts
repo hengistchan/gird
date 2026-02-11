@@ -220,7 +220,7 @@ export async function startDockerServer(
     if (existsSync(composeFile)) {
       unlinkSync(composeFile);
     }
-    throw new DeploymentError(`Failed to start Docker container: ${(error as Error).message}`);
+    throw new DeploymentError(`Failed to start Docker container: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -242,7 +242,7 @@ export async function stopDockerServer(serverId: string, serverName: string): Pr
 
     logger.info(`Stopped Docker container for server: ${serverName}`);
   } catch (error) {
-    logger.error(`Failed to stop container gracefully`, error as Error);
+    logger.error('Failed to stop container gracefully', error instanceof Error ? error : undefined);
     // Try to kill the container directly
     try {
       await dockerCommand(['stop', handle.containerId]);
@@ -312,7 +312,7 @@ export async function getContainerLogs(serverId: string, tail: number = 100): Pr
     const result = await dockerCommand(['logs', '--tail', String(tail), handle.containerId]);
     return result.stdout;
   } catch (error) {
-    return `Failed to get logs: ${(error as Error).message}`;
+    return `Failed to get logs: ${error instanceof Error ? error.message : String(error)}`;
   }
 }
 
