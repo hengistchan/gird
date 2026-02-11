@@ -309,7 +309,7 @@ export class SSEManager implements RealTimeManager {
     try {
       const data = `data: ${JSON.stringify(event)}\n\n`;
       return client.response.write(data);
-    } catch (error) {
+    } catch {
       // Client disconnected, remove them
       this.disconnect(client.id);
       return false;

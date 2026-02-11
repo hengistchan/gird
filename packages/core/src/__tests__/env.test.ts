@@ -195,7 +195,7 @@ describe('Environment Utilities', () => {
       
       try {
         loadEnv();
-      } catch (_e) {
+      } catch {
         // Expected to throw
       }
       

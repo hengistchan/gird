@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { loadConfig, getConfig, validateConfig, resetConfig } from '../config.js';
-import { resetEnv, loadEnv, isDev } from '../env.js';
+import { resetEnv, loadEnv } from '../env.js';
 
 // Valid API key secret for testing
 const VALID_API_SECRET = 'test-secret-key-with-at-least-32-chars-for-testing';
@@ -162,7 +162,6 @@ describe('Config Utilities', () => {
 
     it('should return errors for insecure API_KEY_SECRET in production', () => {
       // We need to test without throwing, so temporarily patch isDev
-      const originalIsDev = isDev;
       vi.stubEnv('NODE_ENV', 'production');
       resetEnv();
       loadEnv();

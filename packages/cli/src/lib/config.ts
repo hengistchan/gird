@@ -57,7 +57,7 @@ export function loadConfig(): CliConfig {
     cachedConfig = { ...DEFAULT_CONFIG, ...userConfig };
     logger.debug(`Loaded config from ${CONFIG_PATH}`);
     return cachedConfig;
-  } catch (err) {
+  } catch {
     logger.warn(`Failed to load config from ${CONFIG_PATH}, using defaults`);
     cachedConfig = { ...DEFAULT_CONFIG };
     return cachedConfig;

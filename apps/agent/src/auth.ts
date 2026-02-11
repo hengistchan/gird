@@ -180,7 +180,7 @@ export async function validateJwtToken(
 
   try {
     payload = await verifyToken(token);
-  } catch (error) {
+  } catch {
     throw new AuthenticationError('Invalid or expired JWT token');
   }
 

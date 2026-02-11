@@ -531,7 +531,7 @@ export function registerServerCommands(program: Command): void {
 
           const data = await response.json() as { success: boolean; logs: string; tail: number };
           return data.logs || '';
-        } catch (err) {
+        } catch {
           // Network errors or API not running
           return null;
         }
