@@ -5,7 +5,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { AuthenticationError } from '@gird/core';
-import { verifyApiKey } from '@gird/core';
+import { verifyApiKey, extractApiKeyPrefix } from '@gird/core';
 
 export interface AuthContext {
   apiKeyId: string;
@@ -41,7 +41,8 @@ export async function authHook(
   }
 
   // Find API key by prefix first (more efficient)
-  const keyPrefix = key.slice(0, 8);
+  // Use extractApiKeyPrefix from core for consistency (returns 12 chars)
+  const keyPrefix = extractApiKeyPrefix(key);
   const apiKeys = await prisma.apiKey.findMany({
     where: { keyPrefix },
   });

@@ -2,8 +2,8 @@
  * Auto-restart manager for crashed deployments
  */
 
-import { DeploymentError, logger, getPrisma } from '@gird/core';
-import type { RestartPolicy, ServerConfig, StdioServerConfig } from '@gird/core';
+import { DeploymentError, logger, getPrisma, asServerConfig, isStdioServerConfig } from '@gird/core';
+import type { RestartPolicy, ServerConfig } from '@gird/core';
 import type { AutoRestartManager } from './types.js';
 
 // Maximum number of retry attempts (fallback if policy doesn't specify)
@@ -29,12 +29,13 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
       return;
     }
 
-    // Type-safe config extraction using type assertion through unknown
-    const config = deployment.server.config as unknown as ServerConfig & {
-      restartPolicy?: RestartPolicy | null;
-    };
+    // Type-safe config extraction using type guards
+    const serverConfig = asServerConfig(deployment.server.config);
 
-    const policy = config?.restartPolicy;
+    // Extract restartPolicy from config if present
+    const policy = (serverConfig as ServerConfig & {
+      restartPolicy?: RestartPolicy | null;
+    }).restartPolicy;
 
     if (!policy?.enabled) {
       logger.debug(`Auto-restart disabled for deployment ${deploymentId}`);
@@ -139,9 +140,13 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
       await startDockerServer(deployment.serverId, deployment.server.name, {}, deployment.port ?? undefined);
     } else if (deployment.type === 'LOCAL_PROCESS') {
       const { startLocalProcess } = await import('../deployment/local-process.js');
-      // Use proper type assertion through unknown for server config
-      const serverConfig = deployment.server.config as unknown as StdioServerConfig;
-      await startLocalProcess(deployment.serverId, deployment.server.name, serverConfig);
+      // Use type guard to safely convert config
+      const serverConfig = asServerConfig(deployment.server.config);
+      if (isStdioServerConfig(serverConfig)) {
+        await startLocalProcess(deployment.serverId, deployment.server.name, serverConfig);
+      } else {
+        throw new DeploymentError(`Invalid server config type for LOCAL_PROCESS deployment`);
+      }
     }
 
     // Update status to running
