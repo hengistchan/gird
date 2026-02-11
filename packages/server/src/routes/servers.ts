@@ -60,10 +60,6 @@ export async function serverRoutes(fastify: FastifyInstance) {
           sortOrder: { type: 'string', enum: ['asc', 'desc'], default: 'desc', description: 'Sort order' },
         },
       },
-      response: {
-        200: { description: 'List of servers' },
-        401: { $ref: '#/components/schemas/Error' },
-      },
     },
   }, async (request, _reply) => {
     const query = ServerQuerySchema.parse(request.query);
@@ -101,11 +97,6 @@ export async function serverRoutes(fastify: FastifyInstance) {
           id: { type: 'string', description: 'Server ID' },
         },
       },
-      response: {
-        200: { description: 'Server details' },
-        401: { $ref: '#/components/schemas/Error' },
-        404: { $ref: '#/components/schemas/Error' },
-      },
     },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
@@ -122,11 +113,15 @@ export async function serverRoutes(fastify: FastifyInstance) {
       description: 'Create a new MCP server',
       tags: ['Servers'],
       security: [{ bearerAuth: [] }],
-      body: { $ref: '#/components/schemas/CreateServerRequest' },
-      response: {
-        201: { description: 'Server created successfully' },
-        400: { $ref: '#/components/schemas/Error' },
-        401: { $ref: '#/components/schemas/Error' },
+      body: {
+        type: 'object',
+        required: ['name', 'type'],
+        properties: {
+          name: { type: 'string' },
+          type: { type: 'string', enum: ['STDIO', 'SSE', 'AWS_LAMBDA', 'EXECUTABLE'] },
+          config: { type: 'object' },
+          description: { type: 'string' },
+        },
       },
     },
   }, async (request, reply) => {
@@ -159,12 +154,13 @@ export async function serverRoutes(fastify: FastifyInstance) {
           id: { type: 'string', description: 'Server ID' },
         },
       },
-      body: { $ref: '#/components/schemas/UpdateServerRequest' },
-      response: {
-        200: { description: 'Server updated successfully' },
-        400: { $ref: '#/components/schemas/Error' },
-        401: { $ref: '#/components/schemas/Error' },
-        404: { $ref: '#/components/schemas/Error' },
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          config: { type: 'object' },
+          description: { type: 'string' },
+        },
       },
     },
   }, async (request, _reply) => {
@@ -177,7 +173,7 @@ export async function serverRoutes(fastify: FastifyInstance) {
       config?: ServerConfig;
       description?: string;
     } = {};
-    
+
     if (data.name !== undefined) {
       updateData.name = data.name;
     }
@@ -206,11 +202,6 @@ export async function serverRoutes(fastify: FastifyInstance) {
         properties: {
           id: { type: 'string', description: 'Server ID' },
         },
-      },
-      response: {
-        200: { description: 'Server deleted successfully' },
-        401: { $ref: '#/components/schemas/Error' },
-        404: { $ref: '#/components/schemas/Error' },
       },
     },
   }, async (request, _reply) => {
@@ -241,13 +232,6 @@ export async function serverRoutes(fastify: FastifyInstance) {
           type: { type: 'string', enum: ['LOCAL_PROCESS', 'DOCKER_COMPOSE'], description: 'Deployment type' },
           config: { type: 'object', description: 'Deployment configuration' },
         },
-      },
-      response: {
-        200: { description: 'Deployment started successfully' },
-        400: { $ref: '#/components/schemas/Error' },
-        401: { $ref: '#/components/schemas/Error' },
-        404: { $ref: '#/components/schemas/Error' },
-        500: { $ref: '#/components/schemas/Error' },
       },
     },
   }, async (request, _reply) => {
@@ -356,12 +340,6 @@ export async function serverRoutes(fastify: FastifyInstance) {
           id: { type: 'string', description: 'Server ID' },
         },
       },
-      response: {
-        200: { description: 'Deployment stopped successfully' },
-        401: { $ref: '#/components/schemas/Error' },
-        404: { $ref: '#/components/schemas/Error' },
-        500: { $ref: '#/components/schemas/Error' },
-      },
     },
   }, async (request, _reply) => {
     const { id } = IdParamsSchema.parse(request.params);
@@ -443,12 +421,6 @@ export async function serverRoutes(fastify: FastifyInstance) {
         properties: {
           tail: { type: 'string', default: '100', description: 'Number of lines to retrieve' },
         },
-      },
-      response: {
-        200: { description: 'Server logs' },
-        401: { $ref: '#/components/schemas/Error' },
-        404: { $ref: '#/components/schemas/Error' },
-        500: { $ref: '#/components/schemas/Error' },
       },
     },
   }, async (request, reply) => {

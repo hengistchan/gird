@@ -220,6 +220,10 @@ For more information, see the [GitHub repository](https://github.com/example/gir
     transformSpecificationClone: true,
   });
 
+  // Register routes
+  await fastify.register(serverRoutes, { prefix: '/api' });
+  await fastify.register(keyRoutes, { prefix: '/api' });
+
   // Register request ID header hook (must be before request logger)
   fastify.addHook('onRequest', requestIdHook);
 
@@ -303,10 +307,6 @@ For more information, see the [GitHub repository](https://github.com/example/gir
     status: 'ok',
     timestamp: new Date().toISOString(),
   }));
-
-  // Register routes
-  await fastify.register(serverRoutes, { prefix: '/api' });
-  await fastify.register(keyRoutes, { prefix: '/api' });
 
   // Graceful shutdown
   fastify.addHook('onClose', async () => {

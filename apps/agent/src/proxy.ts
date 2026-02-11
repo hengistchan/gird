@@ -5,7 +5,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import type { DeploymentType, McpRequest, McpResponse } from '@gird/core';
-import { ProxyError, NotFoundError, DeploymentError, createTimeoutSignal, DEFAULT_TIMEOUTS } from '@gird/core';
+import { ProxyError, NotFoundError, DeploymentError, createTimeoutSignal, DEFAULT_TIMEOUTS, asServerConfig, isSseServerConfig } from '@gird/core';
 import { createLogger } from '@gird/core';
 
 const logger = createLogger('proxy');
@@ -45,6 +45,58 @@ async function getDeployment(prisma: PrismaClient, serverId: string): Promise<{
     containerId: deployment.containerId,
     pid: deployment.pid,
   };
+}
+
+/**
+ * Proxy to an arbitrary URL (for SSE servers)
+ */
+async function proxyToUrl(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  url: string,
+  headers?: Record<string, string>
+): Promise<void> {
+  logger.debug('Proxying request to URL', { url, method: req.method });
+
+  try {
+    // Build request init
+    const init: RequestInit = {
+      method: req.method,
+      headers: {
+        ...headers,
+        ...(req.headers as Record<string, string>),
+      },
+    };
+
+    // Only add body if present
+    if (req.body) {
+      init.body = JSON.stringify(req.body);
+    }
+
+    // Add timeout to prevent hanging requests
+    init.signal = createTimeoutSignal(PROXY_TIMEOUT);
+
+    // Forward the request
+    const response = await fetch(url, init);
+
+    // Set response headers
+    const responseHeaders = response.headers;
+    for (const [key, value] of responseHeaders.entries()) {
+      if (key.toLowerCase() !== 'content-encoding') {
+        reply.header(key, value);
+      }
+    }
+
+    // Set status code
+    reply.code(response.status);
+
+    // Send response body
+    const text = await response.text();
+    reply.send(text);
+  } catch (error) {
+    logger.error('Failed to proxy request to URL', error as Error, { url });
+    throw new ProxyError(`Failed to reach MCP server at ${url}: ${(error as Error).message}`);
+  }
 }
 
 /**
@@ -157,7 +209,28 @@ export async function proxyHandler(
   logger.debug('Proxy request received', { serverId, path, method: req.method });
 
   try {
-    // Get deployment details
+    // First, check if this is an SSE server by looking at server config
+    const server = await req.prisma.server.findUnique({
+      where: { id: serverId },
+    });
+
+    if (!server) {
+      throw new NotFoundError('server', serverId);
+    }
+
+    // Parse and validate server config
+    const serverConfig = asServerConfig(server.config);
+
+    // For SSE servers, proxy directly to the configured URL
+    if (isSseServerConfig(serverConfig)) {
+      const sseUrl = serverConfig.url;
+      // Add path to the base URL if needed
+      const fullUrl = path ? `${sseUrl}/${path}` : sseUrl;
+      await proxyToUrl(req, reply, fullUrl, serverConfig.headers);
+      return;
+    }
+
+    // For other server types, get deployment details
     const deployment = await getDeployment(req.prisma, serverId);
 
     // For local process and Docker deployments, we expect an HTTP endpoint

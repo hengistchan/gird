@@ -4,8 +4,8 @@
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
-import type { DeploymentType, ServerConfig, StdioServerConfig, ExecutableServerConfig } from '@gird/core';
-import { NotFoundError, DeploymentError, ValidationError, asServerConfig } from '@gird/core';
+import type { DeploymentType, ServerConfig, StdioServerConfig, ExecutableServerConfig, ServerType } from '@gird/core';
+import { NotFoundError, DeploymentError, ValidationError, asServerConfig, isSseServerConfig } from '@gird/core';
 import { createLogger } from '@gird/core';
 import { startLocalProcess, stopLocalProcess, getProcessStatus, getProcessLogs } from './local-process.js';
 import { startDockerServer, stopDockerServer, getContainerStatus, getContainerLogs } from './docker-compose.js';
@@ -43,12 +43,20 @@ interface StartDeploymentBody {
 }
 
 /**
+ * Check if a server type requires deployment
+ * SSE and AWS_LAMBDA servers are remote and don't need local deployment
+ */
+function requiresDeployment(serverType: ServerType): boolean {
+  return serverType === 'STDIO' || serverType === 'EXECUTABLE';
+}
+
+/**
  * Helper function to get server configuration with validation
  */
 async function getServerConfig(
   prisma: PrismaClient,
   serverId: string
-): Promise<{ id: string; name: string; type: string; config: ServerConfig }> {
+): Promise<{ id: string; name: string; type: ServerType; config: ServerConfig }> {
   const server = await prisma.server.findUnique({
     where: { id: serverId },
   });
@@ -63,7 +71,7 @@ async function getServerConfig(
   return {
     id: server.id,
     name: server.name,
-    type: server.type,
+    type: server.type as ServerType,
     config,
   };
 }
@@ -85,7 +93,38 @@ export async function startDeploymentHandler(
     // Get server configuration
     const server = await getServerConfig(req.prisma, serverId);
 
-    // Determine deployment type
+    // Check if this server type requires deployment
+    // SSE and AWS_LAMBDA servers are remote - they don't need local deployment
+    if (!requiresDeployment(server.type)) {
+      logger.info(`Server ${server.name} (${server.type}) is a remote server type - marking as ACTIVE without deployment`);
+
+      // Update server status to ACTIVE (remote servers are always "running" from our perspective)
+      await req.prisma.server.update({
+        where: { id: serverId },
+        data: { status: 'ACTIVE' },
+      });
+
+      // For SSE servers, extract URL info for response
+      let url: string | undefined;
+      if (isSseServerConfig(server.config)) {
+        url = server.config.url;
+      }
+
+      reply.code(200).send({
+        success: true,
+        deployment: {
+          id: `remote-${serverId}`,
+          serverId,
+          type: 'REMOTE',
+          status: 'RUNNING',
+          message: `${server.type} servers are remote and do not require local deployment`,
+          ...(url ? { url } : {}),
+        },
+      });
+      return;
+    }
+
+    // Determine deployment type for local servers
     const deploymentType = req.body?.type ?? 'LOCAL_PROCESS';
 
     // Check if there's already a running deployment
@@ -247,6 +286,27 @@ export async function stopDeploymentHandler(
   logger.info(`Stopping deployment for server: ${serverId}`, { apiKeyId, ipAddress });
 
   try {
+    // Get the server configuration
+    const server = await getServerConfig(req.prisma, serverId);
+
+    // Check if this server type requires deployment
+    // SSE and AWS_LAMBDA servers are remote - just mark as stopped
+    if (!requiresDeployment(server.type)) {
+      logger.info(`Server ${server.name} (${server.type}) is a remote server type - marking as STOPPED`);
+
+      // Update server status to STOPPED
+      await req.prisma.server.update({
+        where: { id: serverId },
+        data: { status: 'STOPPED' },
+      });
+
+      reply.code(200).send({
+        success: true,
+        message: `${server.type} server marked as stopped (no local deployment to stop)`,
+      });
+      return;
+    }
+
     // Get the running deployment
     const deployment = await req.prisma.deployment.findFirst({
       where: {
@@ -258,8 +318,6 @@ export async function stopDeploymentHandler(
     if (!deployment) {
       throw new NotFoundError('running deployment', `for server ${serverId}`);
     }
-
-    const server = await getServerConfig(req.prisma, serverId);
 
     // Stop the deployment based on type
     if (deployment.type === 'DOCKER_COMPOSE') {
@@ -390,7 +448,34 @@ export async function getStatusHandler(
       throw new NotFoundError('server', serverId);
     }
 
-    // Get the latest deployment
+    // Check if this is a remote server type (SSE or AWS_LAMBDA)
+    const serverType = server.type as ServerType;
+    const isRemote = !requiresDeployment(serverType);
+
+    if (isRemote) {
+      // For remote servers, return status based on server status
+      // No deployment record exists for remote servers
+      reply.code(200).send({
+        success: true,
+        serverId,
+        serverName: server.name,
+        serverType,
+        serverStatus: server.status,
+        deployment: {
+          id: `remote-${serverId}`,
+          type: 'REMOTE',
+          status: server.status === 'ACTIVE' ? 'RUNNING' : 'STOPPED',
+          message: `${serverType} servers are remote and do not have local deployments`,
+        },
+        runtimeStatus: {
+          running: server.status === 'ACTIVE',
+          type: serverType,
+        },
+      });
+      return;
+    }
+
+    // Get the latest deployment for local servers
     const deployment = await req.prisma.deployment.findFirst({
       where: { serverId },
       orderBy: { createdAt: 'desc' },

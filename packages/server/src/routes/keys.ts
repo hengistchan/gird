@@ -33,10 +33,6 @@ export async function keyRoutes(fastify: FastifyInstance) {
           search: { type: 'string', description: 'Search in key name' },
         },
       },
-      response: {
-        200: { description: 'List of API keys' },
-        401: { $ref: '#/components/schemas/Error' },
-      },
     },
   }, async (request, _reply) => {
     const query = ApiKeyQuerySchema.parse(request.query);
@@ -64,11 +60,6 @@ export async function keyRoutes(fastify: FastifyInstance) {
         properties: {
           id: { type: 'string', description: 'API Key ID' },
         },
-      },
-      response: {
-        200: { description: 'API Key details' },
-        401: { $ref: '#/components/schemas/Error' },
-        404: { $ref: '#/components/schemas/Error' },
       },
     },
   }, async (request, _reply) => {
@@ -98,11 +89,22 @@ export async function keyRoutes(fastify: FastifyInstance) {
       description: 'Create a new API key',
       tags: ['API Keys'],
       security: [{ bearerAuth: [] }],
-      body: { $ref: '#/components/schemas/CreateApiKeyRequest' },
-      response: {
-        201: { description: 'API Key created successfully' },
-        400: { $ref: '#/components/schemas/Error' },
-        401: { $ref: '#/components/schemas/Error' },
+      body: {
+        type: 'object',
+        required: ['name', 'permissions'],
+        properties: {
+          name: { type: 'string' },
+          permissions: {
+            type: 'object',
+            properties: {
+              serverIds: {
+                type: 'array',
+                items: { type: 'string' },
+                nullable: true,
+              },
+            },
+          },
+        },
       },
     },
   }, async (request, reply) => {
@@ -129,11 +131,6 @@ export async function keyRoutes(fastify: FastifyInstance) {
         properties: {
           id: { type: 'string', description: 'API Key ID' },
         },
-      },
-      response: {
-        200: { description: 'API Key deleted successfully' },
-        401: { $ref: '#/components/schemas/Error' },
-        404: { $ref: '#/components/schemas/Error' },
       },
     },
   }, async (request, _reply) => {
