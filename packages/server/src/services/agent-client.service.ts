@@ -2,7 +2,7 @@
  * Agent Client Service - Handles communication with the Agent server
  */
 
-import { createLogger, getConfig, DeploymentError } from '@gird/core';
+import { createLogger, getConfig, DeploymentError } from '@gird-mcp/core';
 
 const logger = createLogger('service:agent-client');
 

@@ -2,8 +2,8 @@
  * Health check implementation
  */
 
-import type { HealthCheckConfig, HealthCheckResult } from '@gird/core';
-import { getPrisma, logger } from '@gird/core';
+import type { HealthCheckConfig, HealthCheckResult } from '@gird-mcp/core';
+import { getPrisma, logger } from '@gird-mcp/core';
 import type { HealthCheckScheduler } from './types.js';
 
 export class HealthChecker implements HealthCheckScheduler {

@@ -2,7 +2,7 @@
  * Health check types and configuration
  */
 
-import type { HealthCheckConfig } from '@gird/core';
+import type { HealthCheckConfig } from '@gird-mcp/core';
 
 export interface HealthCheckScheduler {
   start(deploymentId: string, config: HealthCheckConfig): void;

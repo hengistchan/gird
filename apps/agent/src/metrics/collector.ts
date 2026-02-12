@@ -2,8 +2,8 @@
  * Metrics collector - aggregates metrics from database and stores them
  */
 
-import type { MetricLabel, Prisma } from '@gird/core';
-import { getPrisma } from '@gird/core';
+import type { MetricLabel, Prisma } from '@gird-mcp/core';
+import { getPrisma } from '@gird-mcp/core';
 
 /**
  * Store a metric in the database

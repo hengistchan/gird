@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Writable, PassThrough } from 'node:stream';
-import type { StdioServerConfig, McpRequest, McpResponse } from '@gird/core';
+import type { StdioServerConfig, McpRequest, McpResponse } from '@gird-mcp/core';
 
 // Mock the spawn function
 vi.mock('node:child_process', () => ({
@@ -16,8 +16,8 @@ vi.mock('node:child_process', () => ({
 }));
 
 // Mock the logger
-vi.mock('@gird/core', async () => {
-  const actual = await vi.importActual('@gird/core');
+vi.mock('@gird-mcp/core', async () => {
+  const actual = await vi.importActual('@gird-mcp/core');
   return {
     ...actual,
     createLogger: () => ({

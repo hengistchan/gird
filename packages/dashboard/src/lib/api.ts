@@ -2,7 +2,7 @@ import api from './api-client';
 import type {
   ServerType,
   ServerStatus,
-} from '@gird/core';
+} from '@gird-mcp/core';
 
 // Server API
 export const serverApi = {

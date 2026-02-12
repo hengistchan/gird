@@ -2,8 +2,8 @@
  * Server Service - Business logic for server management
  */
 
-import { getPrisma, createLogger, Prisma } from '@gird/core';
-import { asPrismaInputJsonValue } from '@gird/core';
+import { getPrisma, createLogger, Prisma } from '@gird-mcp/core';
+import { asPrismaInputJsonValue } from '@gird-mcp/core';
 import type {
   ServerType,
   ServerStatus,
@@ -11,8 +11,8 @@ import type {
   UpdateServerRequest,
   ServerResponse,
   DeploymentResponse,
-} from '@gird/core';
-import { NotFoundError, ValidationError } from '@gird/core';
+} from '@gird-mcp/core';
+import { NotFoundError, ValidationError } from '@gird-mcp/core';
 
 const logger = createLogger('service:server');
 

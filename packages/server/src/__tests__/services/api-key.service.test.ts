@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { ApiKeyService } from '../../services/api-key.service.js';
-import { NotFoundError } from '@gird/core';
+import { NotFoundError } from '@gird-mcp/core';
 
 // Test utilities
 let testCounter = 0;
@@ -142,8 +142,8 @@ describe('ApiKeyService', () => {
 
       const result = await apiKeyService.findById(created.id);
 
-      // The result should not include the full key for security
-      expect(result.key).toBeUndefined();
+      // The result should not include the full key for security (only keyPrefix)
+      expect((result as any).key).toBeUndefined();
     });
 
     it('should throw NotFoundError for non-existent key', async () => {
@@ -182,14 +182,19 @@ describe('ApiKeyService', () => {
         name: uniqueName,
         permissions: { serverIds: null },
       });
-      createdKeyIds.push((await apiKeyService.list({ search: uniqueName })).items[0].id);
+      const searchResult = await apiKeyService.list({ search: uniqueName });
+      const foundItem = searchResult.items[0];
+      expect(foundItem).toBeDefined();
+      if (foundItem) {
+        createdKeyIds.push(foundItem.id);
+      }
 
       const result = await apiKeyService.list({
         search: uniqueName,
       });
 
       expect(result.items.length).toBe(1);
-      expect(result.items[0].name).toBe(uniqueName);
+      expect(result.items[0]?.name).toBe(uniqueName);
     });
 
     it.skip('should search by key prefix', async () => {
@@ -220,7 +225,7 @@ describe('ApiKeyService', () => {
       const result = await apiKeyService.list();
 
       result.items.forEach((item) => {
-        expect(item.key).toBeUndefined();
+        expect((item as any).key).toBeUndefined();
       });
     });
   });

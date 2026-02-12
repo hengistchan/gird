@@ -2,7 +2,7 @@
  * Real-time communication types
  */
 
-import type { ServerEvent } from '@gird/core';
+import type { ServerEvent } from '@gird-mcp/core';
 
 // SSE-specific control events (not part of ServerEvent)
 export interface SSEControlEvent {

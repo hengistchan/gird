@@ -4,7 +4,7 @@
  */
 
 import { spawn, ChildProcess } from 'node:child_process';
-import { createLogger, ProxyError, type StdioServerConfig, type McpRequest, type McpResponse } from '@gird/core';
+import { createLogger, ProxyError, type StdioServerConfig, type McpRequest, type McpResponse } from '@gird-mcp/core';
 import { ResponseBuffer } from './response-buffer.js';
 
 const logger = createLogger('stdio:pool');

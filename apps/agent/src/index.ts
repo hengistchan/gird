@@ -7,7 +7,7 @@ import cors from '@fastify/cors';
 import { PrismaClient } from '@prisma/client';
 import { authHook, optionalAuthHook } from './auth.js';
 import { proxyHandler, healthHandler, listServersHandler } from './proxy.js';
-import { getConfig, createLogger, getPrisma, disconnectPrisma } from '@gird/core';
+import { getConfig, createLogger, getPrisma, disconnectPrisma } from '@gird-mcp/core';
 import { registry } from './metrics/index.js';
 import { sseHandler, eventsHandler, sseStatsHandler } from './realtime/handlers.js';
 import {

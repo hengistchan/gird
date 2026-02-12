@@ -2,8 +2,8 @@
  * Auto-restart manager for crashed deployments
  */
 
-import { DeploymentError, logger, getPrisma, asServerConfig, isStdioServerConfig } from '@gird/core';
-import type { RestartPolicy, ServerConfig } from '@gird/core';
+import { DeploymentError, logger, getPrisma, asServerConfig, isStdioServerConfig } from '@gird-mcp/core';
+import type { RestartPolicy, ServerConfig } from '@gird-mcp/core';
 import type { AutoRestartManager } from './types.js';
 
 // Maximum number of retry attempts (fallback if policy doesn't specify)

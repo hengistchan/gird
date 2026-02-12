@@ -1,10 +1,10 @@
 {
-  "name": "@gird/cli",
+  "name": "@gird-mcp/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "gird": "./dist/index.js"
+    "gird-mcp": "./dist/index.js"
   },
   "scripts": {
     "dev": "tsc --watch",
@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gird/core": "workspace:*",
+    "@gird-mcp/core": "workspace:*",
     "@prisma/client": "^6.2.1",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",

@@ -4,9 +4,9 @@
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
-import type { DeploymentType, ServerConfig, StdioServerConfig, ExecutableServerConfig, ServerType } from '@gird/core';
-import { NotFoundError, DeploymentError, ValidationError, asServerConfig, isSseServerConfig } from '@gird/core';
-import { createLogger } from '@gird/core';
+import type { DeploymentType, ServerConfig, StdioServerConfig, ExecutableServerConfig, ServerType } from '@gird-mcp/core';
+import { NotFoundError, DeploymentError, ValidationError, asServerConfig, isSseServerConfig } from '@gird-mcp/core';
+import { createLogger } from '@gird-mcp/core';
 import { startLocalProcess, stopLocalProcess, getProcessStatus, getProcessLogs } from './local-process.js';
 import { startDockerServer, stopDockerServer, getContainerStatus, getContainerLogs } from './docker-compose.js';
 

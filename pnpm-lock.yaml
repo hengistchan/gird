@@ -62,7 +62,7 @@ importers:
       '@fastify/cors':
         specifier: ^10.0.2
         version: 10.1.0
-      '@gird/core':
+      '@gird-mcp/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@prisma/client':
@@ -96,7 +96,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@gird/core':
+      '@gird-mcp/core':
         specifier: workspace:*
         version: link:../core
       '@prisma/client':
@@ -155,7 +155,7 @@ importers:
 
   packages/dashboard:
     dependencies:
-      '@gird/core':
+      '@gird-mcp/core':
         specifier: workspace:*
         version: link:../core
       '@hookform/resolvers':
@@ -246,7 +246,7 @@ importers:
       '@fastify/swagger-ui':
         specifier: ^5.2.5
         version: 5.2.5
-      '@gird/core':
+      '@gird-mcp/core':
         specifier: workspace:*
         version: link:../core
       '@prisma/client':

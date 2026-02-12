@@ -4,9 +4,9 @@
  */
 
 import type { PrismaClient } from '@prisma/client';
-import type { ApiKeyPermissions, JwtPayload } from '@gird/core';
-import { AuthenticationError, AuthorizationError, verifyApiKey, extractApiKeyPrefix } from '@gird/core';
-import { verifyToken } from '@gird/core';
+import type { ApiKeyPermissions, JwtPayload } from '@gird-mcp/core';
+import { AuthenticationError, AuthorizationError, verifyApiKey, extractApiKeyPrefix } from '@gird-mcp/core';
+import { verifyToken } from '@gird-mcp/core';
 
 const API_KEY_PREFIX = 'gird_sk_';
 
@@ -29,7 +29,7 @@ export interface AuthContext {
 }
 
 // Re-export API key functions for use by other modules
-export { generateApiKey, hashApiKey, verifyApiKey } from '@gird/core';
+export { generateApiKey, hashApiKey, verifyApiKey } from '@gird-mcp/core';
 
 /**
  * Extract API key from Authorization header

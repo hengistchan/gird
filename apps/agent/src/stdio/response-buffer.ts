@@ -3,8 +3,8 @@
  * STDIO servers may send partial JSON across multiple stdout chunks
  */
 
-import { createLogger } from '@gird/core';
-import type { McpResponse } from '@gird/core';
+import { createLogger } from '@gird-mcp/core';
+import type { McpResponse } from '@gird-mcp/core';
 
 const logger = createLogger('stdio:buffer');
 

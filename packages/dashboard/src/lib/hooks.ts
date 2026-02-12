@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { serverApi, apiKeyApi } from './api';
 import { notify } from './toast';
-import type { ServerType, ServerStatus } from '@gird/core';
+import type { ServerType, ServerStatus } from '@gird-mcp/core';
 
 // Server Hooks
 export function useServers(params?: {

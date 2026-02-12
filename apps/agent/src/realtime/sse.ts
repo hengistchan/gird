@@ -3,8 +3,8 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { logger } from '@gird/core';
-import type { ServerEvent } from '@gird/core';
+import { logger } from '@gird-mcp/core';
+import type { ServerEvent } from '@gird-mcp/core';
 import type { SSEClient, EventChannel, RealTimeManager, EventHandler, SSEMessage } from './types.js';
 
 const MAX_SSE_CONNECTIONS = 100;

@@ -8,7 +8,7 @@ import { registerKeyCommands } from './commands/key.js';
 import { registerConfigCommands } from './commands/config.js';
 import { info, success, error } from './utils/format.js';
 import { closeDb, getDb } from './lib/db.js';
-import { getConfig } from '@gird/core';
+import { getConfig } from '@gird-mcp/core';
 import chalk from 'chalk';
 
 const program = new Command();

@@ -2,10 +2,10 @@
  * Tests for Deployment Handlers
  */
 
-import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import { generateApiKey, hashApiKey } from '@gird/core';
+import { generateApiKey, hashApiKey } from '@gird-mcp/core';
 import {
   startDeploymentHandler,
   stopDeploymentHandler,
@@ -92,7 +92,7 @@ describe('Deployment Handlers', () => {
       await startDeploymentHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
       expect(call.success).toBe(true);
       expect(call.deployment).toBeDefined();
       expect(call.deployment.serverId).toBe(server.id);
@@ -126,7 +126,7 @@ describe('Deployment Handlers', () => {
       await startDeploymentHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
       expect(call.success).toBe(true);
       expect(call.deployment.type).toBe('REMOTE');
     });
@@ -233,7 +233,7 @@ describe('Deployment Handlers', () => {
       await stopDeploymentHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
       expect(call.success).toBe(true);
     });
 
@@ -264,7 +264,7 @@ describe('Deployment Handlers', () => {
       await stopDeploymentHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
       expect(call.success).toBe(true);
     });
 
@@ -353,7 +353,7 @@ describe('Deployment Handlers', () => {
       await getLogsHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
       expect(call.success).toBe(true);
       expect(call.serverId).toBe(server.id);
     });
@@ -426,7 +426,7 @@ describe('Deployment Handlers', () => {
       await getStatusHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
       expect(call.success).toBe(true);
       expect(call.serverId).toBe(server.id);
       expect(call.deployment).toBeDefined();
@@ -458,7 +458,7 @@ describe('Deployment Handlers', () => {
       await getStatusHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
       expect(call.success).toBe(true);
       expect(call.deployment.type).toBe('REMOTE');
     });
@@ -506,7 +506,7 @@ describe('Deployment Handlers', () => {
       await getStatusHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
       expect(call.success).toBe(true);
       expect(call.deployment).toBeNull();
     });

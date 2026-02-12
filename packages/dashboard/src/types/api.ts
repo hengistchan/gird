@@ -5,7 +5,7 @@ import type {
   ServerType,
   ServerStatus,
   Deployment,
-} from '@gird/core';
+} from '@gird-mcp/core';
 
 // ============================================================================
 // List Query Parameters Types

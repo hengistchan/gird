@@ -9,11 +9,11 @@ import swaggerUi from '@fastify/swagger-ui';
 import { PrismaClient } from '@prisma/client';
 import { serverRoutes } from './routes/servers.js';
 import { keyRoutes } from './routes/keys.js';
-import { getConfig, createLogger, GirdError } from '@gird/core';
+import { getConfig, createLogger, GirdError } from '@gird-mcp/core';
 import { requestLoggerHook, requestIdHook, logError, type RequestLogContext } from './middleware/logger.js';
 
 // Re-export generateApiKey and hashApiKey for use in routes
-export { generateApiKey, hashApiKey } from '@gird/core';
+export { generateApiKey, hashApiKey } from '@gird-mcp/core';
 
 // Extend Fastify instance type to include prisma
 declare module 'fastify' {

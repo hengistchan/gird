@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { serverApi } from '../lib/api';
-import type { ServerType, ServerStatus } from '@gird/core';
+import type { ServerType, ServerStatus } from '@gird-mcp/core';
 
 // Query keys
 export const serverKeys = {

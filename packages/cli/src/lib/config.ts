@@ -14,7 +14,7 @@
 import { homedir } from 'os';
 import { join } from 'path';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
-import { logger } from '@gird/core';
+import { logger } from '@gird-mcp/core';
 
 export interface CliConfig {
   /** API server endpoint */

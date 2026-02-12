@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ResponseBuffer } from '../response-buffer.js';
-import type { McpResponse } from '@gird/core';
+import type { McpResponse } from '@gird-mcp/core';
 
 /**
  * Helper to create a valid MCP response

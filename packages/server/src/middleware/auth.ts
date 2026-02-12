@@ -4,8 +4,8 @@
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient } from '@prisma/client';
-import { AuthenticationError } from '@gird/core';
-import { verifyApiKey, extractApiKeyPrefix } from '@gird/core';
+import { AuthenticationError } from '@gird-mcp/core';
+import { verifyApiKey, extractApiKeyPrefix } from '@gird-mcp/core';
 
 export interface AuthContext {
   apiKeyId: string;

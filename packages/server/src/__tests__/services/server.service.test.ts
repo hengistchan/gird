@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { ServerService } from '../../services/server.service.js';
-import { NotFoundError, ValidationError } from '@gird/core';
+import { NotFoundError, ValidationError } from '@gird-mcp/core';
 
 // Test utilities
 let testCounter = 0;

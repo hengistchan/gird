@@ -1,5 +1,5 @@
 {
-  "name": "@gird/agent",
+  "name": "@gird-mcp/agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
-    "@gird/core": "workspace:*",
+    "@gird-mcp/core": "workspace:*",
     "@prisma/client": "^6.2.1",
     "bcrypt": "^5.1.1",
     "crypto": "^1.0.1",

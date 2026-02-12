@@ -2,13 +2,13 @@
  * API Key Service - Business logic for API key management
  */
 
-import { getPrisma, createLogger, generateApiKey, hashApiKey, extractApiKeyPrefix } from '@gird/core';
+import { getPrisma, createLogger, generateApiKey, hashApiKey, extractApiKeyPrefix } from '@gird-mcp/core';
 import type {
   CreateApiKeyRequest,
   ApiKeyResponse,
   ApiKeyPermissions,
-} from '@gird/core';
-import { NotFoundError } from '@gird/core';
+} from '@gird-mcp/core';
+import { NotFoundError } from '@gird-mcp/core';
 
 const logger = createLogger('service:api-key');
 

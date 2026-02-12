@@ -34,10 +34,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
-      '@gird/core': path.resolve(__dirname, './packages/core/src'),
-      '@gird/server': path.resolve(__dirname, './packages/server/src'),
-      '@gird/cli': path.resolve(__dirname, './packages/cli/src'),
-      '@gird/dashboard': path.resolve(__dirname, './packages/dashboard/src'),
+      '@gird-mcp/core': path.resolve(__dirname, './packages/core/src'),
+      '@gird-mcp/server': path.resolve(__dirname, './packages/server/src'),
+      '@gird-mcp/cli': path.resolve(__dirname, './packages/cli/src'),
+      '@gird-mcp/dashboard': path.resolve(__dirname, './packages/dashboard/src'),
     },
   },
 });

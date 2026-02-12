@@ -7,7 +7,7 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { getDb } from '../lib/db.js';
 import { formatTable, success, error, info, warn } from '../utils/format.js';
-import { getConfig } from '@gird/core';
+import { getConfig } from '@gird-mcp/core';
 import chalk from 'chalk';
 
 // Local schema for validation

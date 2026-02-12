@@ -1,5 +1,5 @@
 {
-  "name": "@gird/core",
+  "name": "@gird-mcp/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",

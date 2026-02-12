@@ -5,7 +5,7 @@
 import type {
   ApiResponse,
   PaginatedResponse,
-} from '@gird/core';
+} from '@gird-mcp/core';
 
 /**
  * Create a standard success response

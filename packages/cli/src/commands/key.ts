@@ -4,7 +4,7 @@
 
 import { Command } from 'commander';
 import type { Prisma } from '@prisma/client';
-import { generateApiKey, hashApiKey, extractApiKeyPrefix, asApiKeyPermissions } from '@gird/core';
+import { generateApiKey, hashApiKey, extractApiKeyPrefix, asApiKeyPermissions } from '@gird-mcp/core';
 import { getDb } from '../lib/db.js';
 import { formatTable, formatApiKey, success, error } from '../utils/format.js';
 

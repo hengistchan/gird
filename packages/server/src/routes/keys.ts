@@ -12,7 +12,7 @@ import {
   deleted as deletedResponse,
 } from '../utils/response.js';
 import { ApiKeyService } from '../services/index.js';
-import type { CreateApiKeyRequest } from '@gird/core';
+import type { CreateApiKeyRequest } from '@gird-mcp/core';
 
 export async function keyRoutes(fastify: FastifyInstance) {
   // Initialize services

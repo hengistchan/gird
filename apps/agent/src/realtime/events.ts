@@ -2,8 +2,8 @@
  * Event emitter for broadcasting server events
  */
 
-import type { ServerEvent } from '@gird/core';
-import { getPrisma } from '@gird/core';
+import type { ServerEvent } from '@gird-mcp/core';
+import { getPrisma } from '@gird-mcp/core';
 import { sseManager } from './sse.js';
 
 /**

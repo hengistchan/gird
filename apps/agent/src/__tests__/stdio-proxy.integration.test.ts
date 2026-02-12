@@ -18,7 +18,7 @@ import {
   type StdioServerConfig,
   type McpRequest,
   type McpResponse,
-} from '@gird/core';
+} from '@gird-mcp/core';
 import { stdioProcessPool } from '../stdio/index.js';
 import { proxyHandler, healthHandler } from '../proxy.js';
 import { authHook } from '../auth.js';

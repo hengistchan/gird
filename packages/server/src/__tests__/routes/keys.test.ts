@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from
 import Fastify from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import { generateApiKey, hashApiKey } from '@gird/core';
+import { generateApiKey, hashApiKey } from '@gird-mcp/core';
 import { keyRoutes } from '../../routes/keys.js';
 
 // Test utilities

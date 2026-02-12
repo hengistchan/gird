@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { ServerType } from '@gird/core';
+import type { ServerType } from '@gird-mcp/core';
 import { useCreateServer } from '../../lib/hooks';
 
 const serverSchema = z.object({

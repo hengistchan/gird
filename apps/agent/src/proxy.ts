@@ -4,7 +4,7 @@
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
-import type { DeploymentType, McpRequest, McpResponse, StdioServerConfig } from '@gird/core';
+import type { DeploymentType, McpRequest, McpResponse, StdioServerConfig } from '@gird-mcp/core';
 import {
   ProxyError,
   NotFoundError,
@@ -14,8 +14,8 @@ import {
   asServerConfig,
   isSseServerConfig,
   isStdioServerConfig,
-} from '@gird/core';
-import { createLogger } from '@gird/core';
+} from '@gird-mcp/core';
+import { createLogger } from '@gird-mcp/core';
 import { stdioProcessPool } from './stdio/index.js';
 
 const logger = createLogger('proxy');

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import { generateApiKey, hashApiKey, initJwt, generateToken } from '@gird/core';
+import { generateApiKey, hashApiKey, initJwt, generateToken } from '@gird-mcp/core';
 import {
   extractApiKey,
   validateApiKey,

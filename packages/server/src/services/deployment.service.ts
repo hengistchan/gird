@@ -3,7 +3,7 @@
  * Coordinates between Server, API Server, and Agent Server
  */
 
-import { createLogger } from '@gird/core';
+import { createLogger } from '@gird-mcp/core';
 import { AgentClientService, type StartDeploymentOptions } from './agent-client.service.js';
 import { ServerService } from './server.service.js';
 

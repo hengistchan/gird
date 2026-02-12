@@ -5,9 +5,9 @@
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
-import { createLogger, DEFAULT_TIMEOUTS } from '@gird/core';
-import type { DockerDeploymentConfig } from '@gird/core';
-import { DeploymentError } from '@gird/core';
+import { createLogger, DEFAULT_TIMEOUTS } from '@gird-mcp/core';
+import type { DockerDeploymentConfig } from '@gird-mcp/core';
+import { DeploymentError } from '@gird-mcp/core';
 
 const logger = createLogger('deployment:docker');
 

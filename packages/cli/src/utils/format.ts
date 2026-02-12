@@ -4,7 +4,7 @@
 
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import type { ApiKeyInfo } from '@gird/core';
+import type { ApiKeyInfo } from '@gird-mcp/core';
 
 export function formatTable(headers: string[], rows: string[][]): void {
   const table = new Table({

@@ -3,9 +3,9 @@
  */
 
 import { spawn, ChildProcess } from 'node:child_process';
-import { createLogger, getPrisma } from '@gird/core';
-import type { StdioServerConfig, ExecutableServerConfig } from '@gird/core';
-import { DeploymentError } from '@gird/core';
+import { createLogger, getPrisma } from '@gird-mcp/core';
+import type { StdioServerConfig, ExecutableServerConfig } from '@gird-mcp/core';
+import { DeploymentError } from '@gird-mcp/core';
 import { stdioProcessPool } from '../stdio/index.js';
 
 const logger = createLogger('deployment:local');

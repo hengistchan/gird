@@ -4,7 +4,7 @@
  */
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { logger } from '@gird/core';
+import { logger } from '@gird-mcp/core';
 
 export interface RequestLogContext {
   requestId: string;

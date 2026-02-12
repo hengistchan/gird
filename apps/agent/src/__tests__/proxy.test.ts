@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } 
 import Fastify from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import { generateApiKey, hashApiKey } from '@gird/core';
+import { generateApiKey, hashApiKey } from '@gird-mcp/core';
 import { proxyHandler, healthHandler, listServersHandler, validateMcpRequest, createMcpError } from '../proxy.js';
 import { authHook } from '../auth.js';
 import { stdioProcessPool } from '../stdio/index.js';
@@ -182,7 +182,8 @@ describe('Proxy Module', () => {
 
       await healthHandler(mockRequest as any, mockReply as any);
 
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
+      expect(call).toBeDefined();
       const timestamp = new Date(call.timestamp);
       expect(timestamp.toISOString()).toBe(call.timestamp);
     });
@@ -209,7 +210,8 @@ describe('Proxy Module', () => {
       await listServersHandler(mockRequest as any, mockReply as any);
 
       expect(mockReply.send).toHaveBeenCalled();
-      const call = mockReply.send.mock.calls[0][0];
+      const call = mockReply.send.mock.calls[0]?.[0];
+      expect(call).toBeDefined();
       expect(call.servers).toBeInstanceOf(Array);
 
       const found = call.servers.find((s: any) => s.id === server.id);

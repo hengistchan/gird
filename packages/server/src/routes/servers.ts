@@ -3,9 +3,9 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { NotFoundError, DeploymentError, createTimeoutSignal, DEFAULT_TIMEOUTS } from '@gird/core';
-import { createLogger, getConfig } from '@gird/core';
-import type { ServerConfig } from '@gird/core';
+import { NotFoundError, DeploymentError, createTimeoutSignal, DEFAULT_TIMEOUTS } from '@gird-mcp/core';
+import { createLogger, getConfig } from '@gird-mcp/core';
+import type { ServerConfig } from '@gird-mcp/core';
 import {
   CreateServerSchema,
   UpdateServerSchema,
