@@ -27,9 +27,9 @@ describe('Timeout Utilities', () => {
     it('should reject when timeout is reached', async () => {
       vi.useFakeTimers();
 
-      let resolvePromise: (value: string) => void;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const promise = new Promise<string>((resolve) => {
-        resolvePromise = resolve;
+        // Intentionally never resolved to test timeout behavior
       });
       const resultPromise = withTimeout(promise, 100);
 
@@ -41,9 +41,9 @@ describe('Timeout Utilities', () => {
     it('should use custom error message when provided', async () => {
       vi.useFakeTimers();
 
-      let resolvePromise: (value: string) => void;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const promise = new Promise<string>((resolve) => {
-        resolvePromise = resolve;
+        // Intentionally never resolved to test timeout behavior
       });
       const resultPromise = withTimeout(promise, 100, 'Custom timeout message');
 
@@ -101,9 +101,9 @@ describe('Timeout Utilities', () => {
     it('should handle zero timeout', async () => {
       vi.useFakeTimers();
 
-      let resolvePromise: (value: string) => void;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const promise = new Promise<string>((resolve) => {
-        resolvePromise = resolve;
+        // Intentionally never resolved to test timeout behavior
       });
       const resultPromise = withTimeout(promise, 0);
 
