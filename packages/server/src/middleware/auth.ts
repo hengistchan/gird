@@ -141,7 +141,7 @@ function getClientIp(request: FastifyRequest): string {
  * Check if IP is allowed (supports exact matches and CIDR notation)
  * Supports IPv4 CIDR ranges (e.g., 192.168.1.0/24)
  */
-function isIpAllowed(clientIp: string, ipWhitelist: string[]): boolean {
+export function isIpAllowed(clientIp: string, ipWhitelist: string[]): boolean {
   return ipWhitelist.some(allowed => {
     // Exact match
     if (allowed === clientIp) {
@@ -160,7 +160,7 @@ function isIpAllowed(clientIp: string, ipWhitelist: string[]): boolean {
 /**
  * Check if an IP address is within a CIDR range
  */
-function isIpInCidr(ip: string, cidr: string): boolean {
+export function isIpInCidr(ip: string, cidr: string): boolean {
   const cidrParts = cidr.split('/');
   const network = cidrParts[0];
   const maskStr = cidrParts[1];
@@ -194,7 +194,7 @@ function isIpInCidr(ip: string, cidr: string): boolean {
 /**
  * Get the 32-bit mask from CIDR prefix length
  */
-function getMaskLong(mask: number): number {
+export function getMaskLong(mask: number): number {
   if (mask === 0) {
     return 0;
   }
@@ -204,7 +204,7 @@ function getMaskLong(mask: number): number {
 /**
  * Convert IPv4 address to unsigned 32-bit integer
  */
-function ipToLong(ip: string): number {
+export function ipToLong(ip: string): number {
   const parts = ip.split('.');
   // Validate IPv4 format (must have exactly 4 parts)
   if (parts.length !== 4) {

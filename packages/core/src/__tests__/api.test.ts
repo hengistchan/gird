@@ -48,11 +48,11 @@ describe('API Key Utilities', () => {
   });
 
   describe('extractApiKeyPrefix', () => {
-    it('should extract first 12 characters as prefix', () => {
+    it('should extract first 20 characters as prefix', () => {
       const key = generateApiKey();
       const prefix = extractApiKeyPrefix(key);
-      expect(prefix).toBe(key.slice(0, 12));
-      expect(prefix.length).toBe(12);
+      expect(prefix).toBe(key.slice(0, 20));
+      expect(prefix.length).toBe(20);
     });
 
     it('should include the gird_sk_ prefix', () => {
@@ -195,7 +195,7 @@ describe('API Key Utilities', () => {
       const prefix = extractApiKeyPrefix(key);
       
       // Prefix should be useful for indexed database lookups
-      expect(prefix.length).toBe(12);
+      expect(prefix.length).toBe(20);
       expect(key.startsWith(prefix)).toBe(true);
     });
   });

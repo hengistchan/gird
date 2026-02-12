@@ -10,8 +10,8 @@ import type { AutoRestartManager } from './types.js';
 const MAX_RETRIES = 5;
 
 // Rate limiting constants
-const MAX_RESTARTS_PER_MINUTE = 3;
-const RESTART_TIME_WINDOW_MS = 60000; // 1 minute
+export const MAX_RESTARTS_PER_MINUTE = 3;
+export const RESTART_TIME_WINDOW_MS = 60000; // 1 minute
 
 // Track retry counts per deployment
 const retryCounts = new Map<string, number>();
@@ -20,10 +20,17 @@ const retryCounts = new Map<string, number>();
 const restartTimestamps = new Map<string, number[]>();
 
 /**
+ * Clear all rate limit tracking (for testing purposes)
+ */
+export function clearAllRateLimits(): void {
+  restartTimestamps.clear();
+}
+
+/**
  * Check if the deployment has exceeded the restart rate limit
  * Returns true if rate limit is exceeded, false otherwise
  */
-function isRateLimitExceeded(deploymentId: string): boolean {
+export function isRateLimitExceeded(deploymentId: string): boolean {
   const now = Date.now();
   const timestamps = restartTimestamps.get(deploymentId) ?? [];
 
@@ -54,7 +61,7 @@ function isRateLimitExceeded(deploymentId: string): boolean {
 /**
  * Clear rate limit tracking for a deployment (called on successful restart)
  */
-function clearRateLimit(deploymentId: string): void {
+export function clearRateLimit(deploymentId: string): void {
   restartTimestamps.delete(deploymentId);
 }
 
