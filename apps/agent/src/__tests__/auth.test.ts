@@ -299,8 +299,6 @@ describe('Agent Auth Module', () => {
 
   describe('optionalAuthHook', () => {
     let mockRequest: any;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let mockReply: any;
 
     beforeEach(() => {
       mockRequest = {
@@ -308,7 +306,6 @@ describe('Agent Auth Module', () => {
         params: {},
         prisma,
       };
-      mockReply = {};
     });
 
     it('should attach auth context when valid credentials provided', async () => {

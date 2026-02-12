@@ -1,18 +1,46 @@
 {
   "name": "@gird-mcp/cli",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
+  "description": "Command-line interface for Gird MCP Server Manager",
   "bin": {
     "gird-mcp": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "dev": "tsc --watch",
     "build": "tsc",
+    "dev": "tsc --watch",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
     "lint": "eslint src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hengistchan/gird.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/hengistchan/gird/issues"
+  },
+  "homepage": "https://github.com/hengistchan/gird#readme",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cli",
+    "server-manager",
+    "api-gateway"
+  ],
+  "author": "",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
     "@gird-mcp/core": "workspace:*",
@@ -26,5 +54,8 @@
     "@types/inquirer": "^9.0.7",
     "@types/node": "^20.17.17",
     "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

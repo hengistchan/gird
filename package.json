@@ -20,7 +20,12 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
+    "version": "pnpm changeset version && pnpm install --lockfile-only",
+    "release": "pnpm build && pnpm changeset publish"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -34,6 +39,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@eslint/js": "^9.39.2",
     "@playwright/test": "^1.58.2",
     "@prisma/client": "^6.2.1",

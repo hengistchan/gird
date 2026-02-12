@@ -1,16 +1,49 @@
 {
   "name": "@gird-mcp/core",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
+  "description": "Core utilities, types, and shared code for Gird MCP Server Manager",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "lint": "eslint src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hengistchan/gird.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/hengistchan/gird/issues"
+  },
+  "homepage": "https://github.com/hengistchan/gird#readme",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "api-gateway",
+    "server-manager"
+  ],
+  "author": "",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
@@ -23,5 +56,11 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.17.17",
     "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "@prisma/client": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
