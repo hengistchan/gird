@@ -4,9 +4,19 @@
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
-import type { DeploymentType, McpRequest, McpResponse } from '@gird/core';
-import { ProxyError, NotFoundError, DeploymentError, createTimeoutSignal, DEFAULT_TIMEOUTS, asServerConfig, isSseServerConfig } from '@gird/core';
+import type { DeploymentType, McpRequest, McpResponse, StdioServerConfig } from '@gird/core';
+import {
+  ProxyError,
+  NotFoundError,
+  DeploymentError,
+  createTimeoutSignal,
+  DEFAULT_TIMEOUTS,
+  asServerConfig,
+  isSseServerConfig,
+  isStdioServerConfig,
+} from '@gird/core';
 import { createLogger } from '@gird/core';
+import { stdioProcessPool } from './stdio/index.js';
 
 const logger = createLogger('proxy');
 
@@ -197,6 +207,43 @@ function createMcpError(id: string | number, code: number, message: string, data
 }
 
 /**
+ * Proxy to a STDIO process
+ */
+async function proxyToStdio(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  serverId: string,
+  config: StdioServerConfig
+): Promise<void> {
+  logger.debug('Proxying request to STDIO process', { serverId, method: req.method });
+
+  // Validate MCP request
+  const mcpRequest = validateMcpRequest(req.body);
+
+  try {
+    // Send request through STDIO process pool
+    const response = await stdioProcessPool.sendRequest(
+      serverId,
+      config,
+      mcpRequest,
+      PROXY_TIMEOUT
+    );
+
+    // Return MCP response
+    reply.code(200).send(response);
+  } catch (error) {
+    logger.error('Failed to proxy to STDIO process', error instanceof Error ? error : undefined, { serverId });
+
+    // Return MCP-formatted error
+    reply.code(200).send(createMcpError(
+      mcpRequest.id,
+      -32603,
+      error instanceof Error ? error.message : String(error)
+    ));
+  }
+}
+
+/**
  * Main proxy handler
  */
 export async function proxyHandler(
@@ -227,6 +274,12 @@ export async function proxyHandler(
       // Add path to the base URL if needed
       const fullUrl = path ? `${sseUrl}/${path}` : sseUrl;
       await proxyToUrl(req, reply, fullUrl, serverConfig.headers);
+      return;
+    }
+
+    // For STDIO servers, use STDIO proxy
+    if (isStdioServerConfig(serverConfig)) {
+      await proxyToStdio(req, reply, serverId, serverConfig);
       return;
     }
 

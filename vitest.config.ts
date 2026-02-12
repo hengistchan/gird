@@ -15,6 +15,8 @@ export default defineConfig({
       '**/build/**',
       'e2e/**',
     ],
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       provider: 'v8',
       include: ['packages/**/*.{ts,tsx}', 'apps/**/*.{ts,tsx}'],

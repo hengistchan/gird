@@ -6,6 +6,7 @@ import { spawn, ChildProcess } from 'node:child_process';
 import { createLogger, getPrisma } from '@gird/core';
 import type { StdioServerConfig, ExecutableServerConfig } from '@gird/core';
 import { DeploymentError } from '@gird/core';
+import { stdioProcessPool } from '../stdio/index.js';
 
 const logger = createLogger('deployment:local');
 
@@ -164,6 +165,13 @@ export async function startLocalProcess(
   // Update state to running after successful setup
   handle.state = ProcessState.Running;
 
+  // Register with STDIO process pool for proxy use
+  // Only register if this is a StdioServerConfig
+  if ('command' in config) {
+    stdioProcessPool.registerExternalProcess(serverId, childProcess, config);
+    logger.debug(`[${serverName}] Registered process with STDIO pool`);
+  }
+
   logger.info(`Started local process for server: ${serverName} (PID: ${childProcess.pid})`);
 
   return { pid: childProcess.pid ?? 0 };
@@ -174,6 +182,9 @@ export async function startLocalProcess(
  */
 export async function stopLocalProcess(serverId: string, serverName: string): Promise<void> {
   logger.info(`Stopping local process for server: ${serverName}`);
+
+  // First, terminate from STDIO pool (this handles cleanup)
+  await stdioProcessPool.terminate(serverId);
 
   const handle = runningProcesses.get(serverId);
   if (!handle) {
@@ -341,8 +352,11 @@ export async function reconcileOnStartup(): Promise<void> {
  * Clean up resources - clear all log buffers and process handles
  * Call this on graceful shutdown
  */
-export function cleanupResources(): void {
+export async function cleanupResources(): Promise<void> {
   logger.info('Cleaning up deployment resources...');
+
+  // Terminate all STDIO processes
+  await stdioProcessPool.terminateAll();
 
   for (const [, handle] of runningProcesses.entries()) {
     // Clear log buffers to prevent memory leaks

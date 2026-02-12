@@ -122,8 +122,8 @@ async function createServer() {
 
   // Graceful shutdown
   fastify.addHook('onClose', async () => {
-    // Clean up deployment resources (log buffers, process handles)
-    cleanupResources();
+    // Clean up deployment resources (log buffers, process handles, STDIO pool)
+    await cleanupResources();
     // Disconnect database
     await disconnectPrisma();
   });

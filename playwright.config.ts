@@ -5,11 +5,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  fullyParallel: false, // MCP tests need to run sequentially to avoid conflicts
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 1, // Single worker for MCP tests (shared server state)
   reporter: 'html',
+  timeout: 60000, // 60s timeout for tests (npx downloads can be slow)
   use: {
     baseURL: process.env.API_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
