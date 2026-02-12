@@ -2,8 +2,7 @@
  * Tests for Deployment Handlers
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
-import Fastify from 'fastify';
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { generateApiKey, hashApiKey } from '@gird/core';

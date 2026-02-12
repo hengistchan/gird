@@ -278,7 +278,7 @@ describe('ServerService', () => {
       });
       createdServerIds.push(created.id);
 
-      const updated = await serverService.update(created.id, {
+      await serverService.update(created.id, {
         config: { command: 'python', args: ['-m', 'server'] },
       });
 

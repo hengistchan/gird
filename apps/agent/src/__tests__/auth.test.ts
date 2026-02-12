@@ -2,7 +2,7 @@
  * Tests for Agent authentication module
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { generateApiKey, hashApiKey, initJwt, generateToken } from '@gird/core';
@@ -161,8 +161,6 @@ describe('Agent Auth Module', () => {
     });
 
     it('should update lastUsedAt on validation', async () => {
-      const before = await prisma.apiKey.findUnique({ where: { id: testApiKeyId } });
-
       await validateApiKey(prisma, testApiKey);
 
       const after = await prisma.apiKey.findUnique({ where: { id: testApiKeyId } });
@@ -301,6 +299,7 @@ describe('Agent Auth Module', () => {
 
   describe('optionalAuthHook', () => {
     let mockRequest: any;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let mockReply: any;
 
     beforeEach(() => {

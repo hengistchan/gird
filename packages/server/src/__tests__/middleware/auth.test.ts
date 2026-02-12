@@ -2,12 +2,12 @@
  * Tests for authentication middleware
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import Fastify from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { generateApiKey, hashApiKey } from '@gird/core';
-import { authHook, AuthContext } from '../../middleware/auth.js';
+import { authHook } from '../../middleware/auth.js';
 
 // Test utilities
 let testCounter = 0;
