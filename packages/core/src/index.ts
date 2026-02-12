@@ -53,10 +53,10 @@ export function generateApiKey(): string {
 
 /**
  * Extract the prefix from an API key for optimized database lookup
- * Returns the first 12 characters (gird_sk_ + 6 chars)
+ * Returns the first 20 characters (gird_sk_ + 14 chars)
  */
 export function extractApiKeyPrefix(key: string): string {
-  return key.slice(0, 12);
+  return key.slice(0, 20);
 }
 
 /**

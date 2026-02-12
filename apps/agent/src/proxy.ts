@@ -5,6 +5,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import type { DeploymentType, McpRequest, McpResponse, StdioServerConfig } from '@gird-mcp/core';
+import http from 'node:http';
 import {
   ProxyError,
   NotFoundError,
@@ -20,8 +21,90 @@ import { stdioProcessPool } from './stdio/index.js';
 
 const logger = createLogger('proxy');
 
+// HTTP Agent for connection reuse (keep-alive)
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 25, // Maximum concurrent sockets per host
+  maxFreeSockets: 10, // Maximum free sockets to keep in the pool
+  timeout: 60000, // Socket timeout in ms
+  scheduling: 'fifo', // FIFO scheduling for fairness
+});
+
 // Timeout for proxy requests (30 seconds)
 const PROXY_TIMEOUT = DEFAULT_TIMEOUTS.PROXY_REQUEST;
+
+/**
+ * Fetch implementation using http.request with connection reuse
+ */
+async function fetchWithAgent(
+  url: string,
+  options: RequestInit & { signal?: AbortSignal | null }
+): Promise<Response> {
+  const urlObj = new URL(url);
+  const isHttp = urlObj.protocol === 'http:';
+
+  return new Promise((resolve, reject) => {
+    const requestOptions: http.RequestOptions = {
+      method: options.method || 'GET',
+      hostname: urlObj.hostname,
+      port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      headers: options.headers as http.OutgoingHttpHeaders,
+      agent: isHttp ? httpAgent : undefined, // Only use agent for HTTP (https uses https agent if needed)
+    };
+
+    const req = http.request(requestOptions, (res) => {
+      const chunks: Buffer[] = [];
+
+      res.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      res.on('end', () => {
+        const body = Buffer.concat(chunks).toString('utf-8');
+
+        // Convert http.IncomingHttpHeaders to Headers-compatible format
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(res.headers)) {
+          if (value) {
+            if (Array.isArray(value)) {
+              value.forEach((v) => headers.append(key, v));
+            } else {
+              headers.set(key, value);
+            }
+          }
+        }
+
+        const response = new Response(body, {
+          status: res.statusCode || 200,
+          statusText: res.statusMessage || '',
+          headers,
+        });
+
+        resolve(response);
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    // Handle timeout
+    if (options.signal) {
+      options.signal.addEventListener('abort', () => {
+        req.destroy();
+        reject(new Error('Request aborted due to timeout'));
+      });
+    }
+
+    // Write body if present
+    if (options.body) {
+      req.write(options.body);
+    }
+
+    req.end();
+  });
+}
 
 /**
  * Get the deployment details for a server
@@ -86,8 +169,8 @@ async function proxyToUrl(
     // Add timeout to prevent hanging requests
     init.signal = createTimeoutSignal(PROXY_TIMEOUT);
 
-    // Forward the request
-    const response = await fetch(url, init);
+    // Forward the request using http.Agent for connection reuse
+    const response = await fetchWithAgent(url, init);
 
     // Set response headers
     const responseHeaders = response.headers;
@@ -138,8 +221,8 @@ async function proxyToHttp(
     // Add timeout to prevent hanging requests
     init.signal = createTimeoutSignal(PROXY_TIMEOUT);
 
-    // Forward the request
-    const response = await fetch(url, init);
+    // Forward the request using http.Agent for connection reuse
+    const response = await fetchWithAgent(url, init);
 
     // Set response headers
     const responseHeaders = response.headers;

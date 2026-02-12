@@ -9,8 +9,54 @@ import type { AutoRestartManager } from './types.js';
 // Maximum number of retry attempts (fallback if policy doesn't specify)
 const MAX_RETRIES = 5;
 
+// Rate limiting constants
+const MAX_RESTARTS_PER_MINUTE = 3;
+const RESTART_TIME_WINDOW_MS = 60000; // 1 minute
+
 // Track retry counts per deployment
 const retryCounts = new Map<string, number>();
+
+// Track restart timestamps for rate limiting per deployment
+const restartTimestamps = new Map<string, number[]>();
+
+/**
+ * Check if the deployment has exceeded the restart rate limit
+ * Returns true if rate limit is exceeded, false otherwise
+ */
+function isRateLimitExceeded(deploymentId: string): boolean {
+  const now = Date.now();
+  const timestamps = restartTimestamps.get(deploymentId) ?? [];
+
+  // Filter to only timestamps within the time window
+  const recentTimestamps = timestamps.filter(
+    ts => now - ts < RESTART_TIME_WINDOW_MS
+  );
+
+  // Update the stored timestamps
+  restartTimestamps.set(deploymentId, recentTimestamps);
+
+  const restartCount = recentTimestamps.length;
+
+  if (restartCount >= MAX_RESTARTS_PER_MINUTE) {
+    logger.warn(
+      `Rate limit exceeded for deployment ${deploymentId}: ${restartCount} restarts in the last ${RESTART_TIME_WINDOW_MS / 1000} seconds (max: ${MAX_RESTARTS_PER_MINUTE})`
+    );
+    return true;
+  }
+
+  // Add current timestamp to the list
+  recentTimestamps.push(now);
+  restartTimestamps.set(deploymentId, recentTimestamps);
+
+  return false;
+}
+
+/**
+ * Clear rate limit tracking for a deployment (called on successful restart)
+ */
+function clearRateLimit(deploymentId: string): void {
+  restartTimestamps.delete(deploymentId);
+}
 
 export class AutoRestartManagerImpl implements AutoRestartManager {
   /**
@@ -46,6 +92,18 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
     const effectiveMaxRetries = policy.maxRetries ?? MAX_RETRIES;
     let retryCount = retryCounts.get(deploymentId) ?? 0;
 
+    // Check rate limit before attempting any restart
+    if (isRateLimitExceeded(deploymentId)) {
+      logger.error(
+        `Auto-restart rate limit exceeded for deployment ${deploymentId}. Stopping auto-restart to prevent infinite restart loop.`
+      );
+      // Clean up tracking and mark as failed
+      retryCounts.delete(deploymentId);
+      clearRateLimit(deploymentId);
+      await this.markFailed(deploymentId);
+      return;
+    }
+
     // Loop-based retry instead of recursion to prevent stack overflow
     while (retryCount < effectiveMaxRetries) {
       // Calculate backoff delay
@@ -65,8 +123,9 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
       try {
         await this.restart(deploymentId);
 
-        // Success - reset retry count and exit
+        // Success - reset retry count and rate limit tracking, then exit
         retryCounts.delete(deploymentId);
+        clearRateLimit(deploymentId);
         logger.info(`Deployment ${deploymentId} restarted successfully`);
         return;
       } catch (error) {
@@ -77,6 +136,17 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
           error instanceof Error ? error : new Error(String(error))
         );
 
+        // Check rate limit after each failed attempt to prevent infinite loop
+        if (isRateLimitExceeded(deploymentId)) {
+          logger.error(
+            `Auto-restart rate limit exceeded for deployment ${deploymentId} after ${retryCount} attempts. Stopping auto-restart.`
+          );
+          retryCounts.delete(deploymentId);
+          clearRateLimit(deploymentId);
+          await this.markFailed(deploymentId);
+          return;
+        }
+
         // Continue loop to retry with backoff
       }
     }
@@ -86,6 +156,7 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
       `Max retries (${effectiveMaxRetries}) reached for deployment ${deploymentId}`
     );
     retryCounts.delete(deploymentId);
+    clearRateLimit(deploymentId);
     await this.markFailed(deploymentId);
   }
 
@@ -101,6 +172,7 @@ export class AutoRestartManagerImpl implements AutoRestartManager {
    */
   async resetRetryCount(deploymentId: string): Promise<void> {
     retryCounts.delete(deploymentId);
+    clearRateLimit(deploymentId);
   }
 
   /**
