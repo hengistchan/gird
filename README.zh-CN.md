@@ -26,7 +26,7 @@
 
 ### 管理界面
 - **HTTP REST API**: 完整的服务器和 API 密钥 CRUD 操作
-- **命令行工具 (CLI)**: `gird` 命令用于服务器和密钥管理
+- **命令行工具 (CLI)**: `gird-mcp` 命令用于服务器和密钥管理
 - **Web 控制台**: 基于 React 的 UI 界面，支持：
   - 服务器管理与监控
   - API 密钥管理
@@ -132,17 +132,17 @@ pnpm lint
 cd packages/cli && pnpm link --global
 
 # 服务器管理
-gird server list                    # 列出所有服务器
-gird server create my-server        # 创建新服务器
-gird server start my-server         # 启动服务器
-gird server stop my-server          # 停止服务器
-gird server delete my-server -f     # 删除服务器（使用 --force 标志）
+gird-mcp server list                    # 列出所有服务器
+gird-mcp server create my-server        # 创建新服务器
+gird-mcp server start my-server         # 启动服务器
+gird-mcp server stop my-server          # 停止服务器
+gird-mcp server delete my-server -f     # 删除服务器（使用 --force 标志）
 
 # API 密钥管理
-gird key list                       # 列出所有 API 密钥
-gird key create my-key              # 创建新 API 密钥
-gird key create my-key --servers all  # 创建可访问所有服务器的密钥
-gird key delete my-key -f           # 删除 API 密钥（使用 --force 标志）
+gird-mcp key list                       # 列出所有 API 密钥
+gird-mcp key create my-key              # 创建新 API 密钥
+gird-mcp key create my-key --servers all  # 创建可访问所有服务器的密钥
+gird-mcp key delete my-key -f           # 删除 API 密钥（使用 --force 标志）
 ```
 
 ### HTTP API

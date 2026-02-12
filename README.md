@@ -26,7 +26,7 @@ A unified management system for deploying and managing MCP (Model Context Protoc
 
 ### Management Interfaces
 - **HTTP REST API**: Full CRUD operations for servers and API keys
-- **Command-line Interface (CLI)**: `gird` command for server and key management
+- **Command-line Interface (CLI)**: `gird-mcp` command for server and key management
 - **Web Dashboard**: React-based UI with:
   - Server management and monitoring
   - API key administration
@@ -132,17 +132,17 @@ pnpm lint
 cd packages/cli && pnpm link --global
 
 # Server management
-gird server list                    # List all servers
-gird server create my-server        # Create a new server
-gird server start my-server         # Start a server
-gird server stop my-server          # Stop a server
-gird server delete my-server -f     # Delete a server (with --force flag)
+gird-mcp server list                    # List all servers
+gird-mcp server create my-server        # Create a new server
+gird-mcp server start my-server         # Start a server
+gird-mcp server stop my-server          # Stop a server
+gird-mcp server delete my-server -f     # Delete a server (with --force flag)
 
 # API Key management
-gird key list                       # List all API keys
-gird key create my-key              # Create a new API key
-gird key create my-key --servers all  # Create key with access to all servers
-gird key delete my-key -f           # Delete an API key (with --force flag)
+gird-mcp key list                       # List all API keys
+gird-mcp key create my-key              # Create a new API key
+gird-mcp key create my-key --servers all  # Create key with access to all servers
+gird-mcp key delete my-key -f           # Delete an API key (with --force flag)
 ```
 
 ### HTTP API

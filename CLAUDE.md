@@ -34,11 +34,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Package | Purpose |
 |---------|---------|
-| `packages/core` | Shared types, errors, logger, config, JWT utilities, API key generation/hashing |
-| `packages/server` | HTTP REST API for managing MCP servers and API keys |
-| `packages/cli` | Command-line interface (`gird server ...`, `gird key ...`) |
-| `packages/dashboard` | React web dashboard (Vite, React Router, TanStack Query) |
-| `apps/agent` | MCP proxy server - handles auth, deployment, health checks, metrics, SSE events |
+| `@gird-mcp/core` | Shared types, errors, logger, config, JWT utilities, API key generation/hashing |
+| `@gird-mcp/server` | HTTP REST API for managing MCP servers and API keys |
+| `@gird-mcp/cli` | Command-line interface (`gird-mcp server ...`, `gird-mcp key ...`) |
+| `@gird-mcp/dashboard` | React web dashboard (Vite, React Router, TanStack Query) |
+| `@gird-mcp/agent` | MCP proxy server - handles auth, deployment, health checks, metrics, SSE events |
 
 ## Common Commands
 
@@ -138,14 +138,14 @@ Located in `apps/agent/src/`:
 
 ### Type Imports
 
-All shared types come from `@gird/core`:
+All shared types come from `@gird-mcp/core`:
 ```typescript
-import type { ServerType, ServerConfig, ApiKeyPermissions, GirdError } from '@gird/core';
+import type { ServerType, ServerConfig, ApiKeyPermissions, GirdError } from '@gird-mcp/core';
 ```
 
 ### Error Handling
 
-All custom errors extend `GirdError` (`packages/core/src/types.ts`):
+All custom errors extend `GirdError` (`packages/core/src/errors.ts`):
 - `AuthenticationError` (401)
 - `AuthorizationError` (403)
 - `NotFoundError` (404)
@@ -171,24 +171,24 @@ const { id } = IdParamsSchema.parse(request.params);
 ## Monorepo Notes
 
 - **Workspace protocol**: Use `workspace:*` in package.json for internal dependencies
-- **Build order**: Core builds first (others depend on `@gird/core`)
+- **Build order**: Core builds first (others depend on `@gird-mcp/core`)
 - **pnpm filters**: `pnpm --filter './apps/*'` targets only apps/, not packages/
 - **TypeScript**: All packages use `tsconfig.base.json` as base, with strict mode enabled
 
 ## CLI Global Link
 
-To use the `gird` command globally:
+To use the `gird-mcp` command globally:
 ```bash
 cd packages/cli && pnpm link --global
 ```
 
 Then use:
 ```bash
-gird server list
-gird server create <name>
-gird server start <name>
-gird key list
-gird key create <name> --servers all
+gird-mcp server list
+gird-mcp server create <name>
+gird-mcp server start <name>
+gird-mcp key list
+gird-mcp key create <name> --servers all
 ```
 
 ## Inter-Service Communication
