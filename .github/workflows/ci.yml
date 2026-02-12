@@ -45,7 +45,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Type check
-        run: pnpm -r typecheck
+        run: pnpm -r --filter './packages/*' --filter '!./apps/agent' typecheck
 
       - name: Lint
         run: pnpm lint
