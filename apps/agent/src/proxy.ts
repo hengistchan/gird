@@ -164,7 +164,7 @@ async function proxyToHttp(
 /**
  * Validate MCP request format
  */
-function validateMcpRequest(body: unknown): McpRequest {
+export function validateMcpRequest(body: unknown): McpRequest {
   if (!body || typeof body !== 'object') {
     throw new ProxyError('Invalid MCP request: request body must be a JSON-RPC object');
   }
@@ -194,7 +194,7 @@ function validateMcpRequest(body: unknown): McpRequest {
 /**
  * Create an MCP error response
  */
-function createMcpError(id: string | number, code: number, message: string, data?: unknown): McpResponse {
+export function createMcpError(id: string | number, code: number, message: string, data?: unknown): McpResponse {
   return {
     jsonrpc: '2.0',
     id,
