@@ -8,6 +8,8 @@ on:
 
 env:
   NODE_VERSION: '20'
+  DATABASE_URL: "file:./dev.db"
+  API_KEY_SECRET: "ci-test-secret-key-min-32-chars-long"
 
 jobs:
   ci:
