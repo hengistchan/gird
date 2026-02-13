@@ -49,6 +49,9 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm db:generate
 
+      - name: Push database schema
+        run: pnpm db:push
+
       - name: Build
         run: pnpm build
         continue-on-error: true
